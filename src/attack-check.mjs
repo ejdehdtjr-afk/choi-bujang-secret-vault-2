@@ -1,6 +1,26 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
+  if (config.step === 2) {
+    const results = [];
+    for (const [path, method, id, expected] of [
+      ['/data.json', 'GET', 'static_notes_removed', '정적 JSON의 notes 배열이 비어 있음'],
+      ['/api/notes', 'GET', 'public_api_remaining', '인증 없는 API에서 가상 메모 4건 조회 가능: 남은 약점'],
+      ['/api/notes', 'POST', 'api_method_rejected', '쓰기 요청은 HTTP 405로 거부'],
+    ]) {
+      const response = await fetch(new URL(path, config.publicAppUrl), {
+        method, redirect: 'error', signal: AbortSignal.timeout(15000),
+      });
+      let count = null;
+      if (method === 'GET' && response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data.notes)) count = data.notes.length;
+      }
+      results.push({ attackId: id, expected,
+        observed: `HTTP ${response.status}${count === null ? '' : `, notes ${count}건`}` });
+    }
+    return results;
+  }
   if (config.step !== 1) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {

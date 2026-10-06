@@ -1,5 +1,40 @@
 # BYTE BACK 방어전 시작 틀 R5
 
+## 2단계 저장점
+
+화면은 `/api/notes`를 통해 Supabase의 `public.vault_notes`를 읽습니다.
+Vercel Production 환경변수 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`를 사용하며
+키는 브라우저·응답·로그로 전달하지 않습니다. Secret key는 서버 요청의
+`apikey` 헤더에만 사용합니다. `owner_id uuid`는 외래키 없이 준비했습니다.
+DB는 RLS를 켜고 anon/authenticated의 읽기를 차단하며 service_role에 SELECT를 부여합니다.
+
+`data.json`과 `public/data.json`은 빈 notes 배열만 담습니다. 빌드도 빈 JSON만
+출력하며 루트 data.json에 메모가 있으면 실패합니다.
+로컬 검사: `node --test test/notes.test.mjs` 및 `npm run build -- --local`.
+배포 뒤 `/`에서 카드 네 건, `/data.json`에서 빈 배열, `/api/notes`에서 DB 자료를 확인합니다.
+POST `/api/notes`는 405, 환경변수 누락은 503, DB 오류는 일반화된 502가 정상입니다.
+
+아직 `/api/notes`는 인증 없는 공개 API입니다. 누구나 가상 메모를 읽을 수 있으며
+사용자별 접근 통제는 3단계 작업입니다. 실제 개인정보는 넣지 않습니다.
+이전 공개 Git 커밋과 이전 Vercel 배포는 그대로 남아 있습니다.
+이번 변경은 과거 노출이나 과거 비밀값 유출을 해소하지 않습니다.
+아래 1단계 설명은 초기 상태의 기록이며 현재 빌드는 위 2단계 동작을 따릅니다.
+
+### 공개 파일 검사와 검증 범위
+
+`git grep -n -E '실습용 가상 .* 기록' HEAD -- data.json public api`로 최신 커밋의
+메모 본문 잔존 여부를 검사합니다. 결과가 없어야 합니다. 로컬 빌드 후 같은 범위를
+`rg -l '실습용 가상 .* 기록' public api data.json`으로 검사합니다.
+실제 키 문자열을 검색 명령이나 로그에 넣지 않습니다. 알려진 키 형식 검사도 병행하되
+패턴 검사만으로 모든 비밀값의 부재를 증명하지는 않습니다.
+배포 후 `/`, `/data.json`, `/aleph.json`을 비로그인으로 읽고 정적 응답에
+메모 본문과 키 형식이 없는지 확인합니다. 현재 프런트엔드는 별도 JS 번들 없이
+index.html의 스크립트를 사용합니다. 공개 API 응답은 정적 파일 검사와 구분합니다.
+`node --test test/notes.test.mjs`와 로컬 빌드는 통과했고 작업 파일에서 기존 본문은
+발견되지 않았습니다. 실제 배포 결과는 `npm run bundle`의 직접 요청 결과에 기록합니다.
+Supabase 공개 키를 이용한 직접 DB 요청은 아직 실행하지 않았습니다.
+이전 커밋·이전 배포에 대한 삭제 또는 검사 완료를 주장하지 않습니다.
+
 이 저장소는 1단계에서 학생 본인이 GitHub 저장소와 Vercel 배포를 만드는 출발점입니다. 포함된 메모 네 건은 가상 자료입니다. 실제 학생 자료, 토큰, 비밀키를 넣지 마세요.
 
 ## 학생이 하는 일: 세 걸음
