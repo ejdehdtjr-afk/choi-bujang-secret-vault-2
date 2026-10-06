@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPair, SignJWT, exportJWK, createLocalJWKSet } from 'jose';
-import { createNotesHandler } from '../api/notes.js';
+import { createNotesService } from '../src/notes-api.mjs';
 import { createLoginVerifier } from '../src/verify-login.mjs';
 
 test('real verifier rejects missing, forged, expired and wrong-audience tokens before DB access', async () => {
   const pair = await generateKeyPair('ES256');
   const wrongPair = await generateKeyPair('ES256');
   const jwk = await exportJWK(pair.publicKey);
-  const handler = createNotesHandler(options => createLoginVerifier({ ...options,
+  const handler = createNotesService(options => createLoginVerifier({ ...options,
     judgeKeySet: createLocalJWKSet({ keys: [{ ...jwk, kid:'test', alg:'ES256' }] }),
     supabaseClient: { auth: { getClaims: async () => ({ error: true }) } },
   }));
@@ -26,7 +26,7 @@ test('real verifier rejects missing, forged, expired and wrong-audience tokens b
   const oldKey = process.env.SUPABASE_SECRET_KEY;
   const call = async (authorization, method='GET') => {
     const res = { setHeader() {}, status(code) {this.code=code;return this;}, json(body){this.body=body;} };
-    await handler({ method, headers:{ authorization }, body:{userId:'untrusted',role:'admin'} },res);
+    await handler.collection({ method, headers:{ authorization }, body:{userId:'untrusted',role:'admin'} },res);
     return res;
   };
   try {

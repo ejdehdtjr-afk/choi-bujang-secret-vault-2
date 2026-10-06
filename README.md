@@ -17,6 +17,15 @@ Supabase 공식 SDK로 이메일·비밀번호 로그인과 현재 브라우저 
 거부: 시크릿 창의 `/api/notes`는 401이고 메모 본문이 없어야 합니다.
 아래 2단계 기록은 이전 저장점 설명입니다. 3단계 최종 제출 묶음은 제작 3 완료 후 생성합니다.
 
+### 3단계 제작 3: 로그인 메모 CRUD
+
+`GET /api/notes`, `POST /api/notes`, `GET|PUT|DELETE /api/notes/:id`는 모두
+서버가 확인한 로그인 토큰을 요구합니다. POST는 요청의 userId·role을 사용하지 않고
+검증된 사용자 ID를 `owner_id`에 저장합니다. 브라우저는 서버 전용 키를 받지 않습니다.
+목록은 로그인한 사용자의 메모만 보여 줍니다. 항목 GET·PUT·DELETE는 아직 owner_id를
+비교하지 않으므로 로그인한 B가 A의 UUID를 알면 접근·수정·삭제할 수 있습니다. 이 의도된
+약점은 4단계에서 막아야 하며, 현재는 가상 자료만 사용합니다.
+
 ## 2단계 저장점
 
 화면은 `/api/notes`를 통해 Supabase의 `public.vault_notes`를 읽습니다.
