@@ -1,6 +1,22 @@
-// Step 2: intentionally public until authentication is added in step 3.
-export default async function handler(request, response) {
+import { readFileSync } from 'node:fs';
+import { createLoginVerifier } from '../src/verify-login.mjs';
+
+const config = JSON.parse(readFileSync(new URL('../aleph.config.json', import.meta.url), 'utf8'));
+export function createNotesHandler(verifierFactory = createLoginVerifier) {
+  let verify;
+  return async function handler(request, response) {
   response.setHeader('Cache-Control', 'no-store');
+  const authorization = request.headers?.authorization;
+  if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ')) {
+    return response.status(401).json({ error: 'LOGIN_REQUIRED' });
+  }
+  try {
+    verify ??= verifierFactory({ config, supabaseSecretKey: process.env.SUPABASE_SECRET_KEY });
+    const identity = await verify(authorization);
+    if (!identity) return response.status(401).json({ error: 'LOGIN_REQUIRED' });
+  } catch {
+    return response.status(401).json({ error: 'LOGIN_REQUIRED' });
+  }
   if (request.method !== 'GET') {
     response.setHeader('Allow', 'GET');
     return response.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
@@ -36,3 +52,6 @@ export default async function handler(request, response) {
     return response.status(502).json({ error: 'NOTES_UNAVAILABLE' });
   }
 }
+}
+
+export default createNotesHandler();

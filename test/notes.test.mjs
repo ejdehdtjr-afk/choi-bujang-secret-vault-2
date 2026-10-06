@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import handler from '../api/notes.js';
+import { createNotesHandler } from '../api/notes.js';
+const handler = createNotesHandler(() => async () => ({ userId: 'test-user' }));
 
 test('notes API protects credentials and projects only allowed fields', async () => {
   const originalFetch = globalThis.fetch;
@@ -9,7 +10,7 @@ test('notes API protects credentials and projects only allowed fields', async ()
   const call = async (method = 'GET') => {
     const response = { headers: {}, setHeader(k,v) { this.headers[k]=v; },
       status(code) { this.code=code; return this; }, json(body) { this.body=body; return this; } };
-    await handler({ method }, response);
+    await handler({ method, headers: { authorization: 'Bearer test-placeholder' } }, response);
     return response;
   };
   try {
