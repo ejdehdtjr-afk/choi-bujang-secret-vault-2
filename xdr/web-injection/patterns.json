@@ -1,0 +1,25 @@
+{
+  "mitreAttack": "T1190",
+  "patterns": [
+    {
+      "name": "repeated_sql_syntax",
+      "conditions": "같은 출발 주소에서 SQL 구문 또는 데이터베이스 조회 표기가 반복되고 규칙 수준이 10 이상",
+      "evidence": "MITRE ATT&CK T1190: 외부 공개 애플리케이션의 입력에 SQL 구문을 반복 삽입하는 시도는 취약점 악용 신호입니다."
+    },
+    {
+      "name": "repeated_script_injection",
+      "conditions": "같은 출발 주소에서 스크립트 삽입 표기가 반복되고 규칙 수준이 10 이상",
+      "evidence": "MITRE ATT&CK T1190: 외부 공개 애플리케이션 입력의 반복 스크립트 삽입은 악용 시도 신호입니다."
+    },
+    {
+      "name": "repeated_path_traversal",
+      "conditions": "같은 출발 주소에서 경로 거슬러 올라가기 표기가 반복되고 규칙 수준이 10 이상",
+      "evidence": "MITRE ATT&CK T1190: 반복된 경로 이탈 표기는 외부 공개 애플리케이션의 경로 검증 우회 시도 신호입니다."
+    },
+    {
+      "name": "repeated_command_separator",
+      "conditions": "같은 출발 주소에서 명령 구분자 표기가 반복되고 규칙 수준이 10 이상",
+      "evidence": "MITRE ATT&CK T1190: 반복된 명령 구분자 표기는 외부 공개 애플리케이션 입력을 통한 명령 주입 시도 신호입니다."
+    }
+  ]
+}
