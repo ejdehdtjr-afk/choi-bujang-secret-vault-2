@@ -1,9 +1,10 @@
 import { appendFile, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-function expiresAt(timestamp) {
-  const instant = Date.parse(timestamp);
-  return new Date((Number.isFinite(instant) ? instant : Date.now()) + 15 * 60 * 1000).toISOString();
+function expiresAt() {
+  // Fixtures are historical. A rule must remain active when this run is
+  // applied, rather than expiring fifteen minutes after a fixture timestamp.
+  return new Date(Date.now() + 15 * 60 * 1000).toISOString();
 }
 
 export async function applyActions({ root, alerts, decisions }) {
@@ -13,7 +14,7 @@ export async function applyActions({ root, alerts, decisions }) {
     const sourceIp = alert?.data?.srcip;
     if (typeof sourceIp !== 'string' || !sourceIp) return [];
     return [{ id: `brute-force-${decision.alertId}`, action: 'deny', sourceIp,
-      expiresAt: expiresAt(alert.timestamp), evidenceAlertId: decision.alertId, reason: decision.reason }];
+      expiresAt: expiresAt(), evidenceAlertId: decision.alertId, reason: decision.reason }];
   });
   const moduleDir = join(root, 'xdr', 'brute-force');
   await mkdir(moduleDir, { recursive: true });
