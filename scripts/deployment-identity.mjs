@@ -26,5 +26,7 @@ export function deploymentIdentity(env, config) {
     publicAppUrl: `https://${host.toLowerCase()}`,
     judgeIssuer: config.judgeIssuer,
     sampleMarker: config.sampleMarker,
+    ...(config.step >= 3 && Array.isArray(config.allowedRoutes)
+      ? { allowedRoutes: config.allowedRoutes } : {}),
   };
 }
