@@ -1,35 +1,27 @@
-import patterns from './patterns.json' with { type: 'json' };
-import { normalizeAlert } from '../normalize-alert.mjs';
-
-const FAILURE = /실패|failed|failure|brute.?force|password guessing/iu;
-const SUCCESS = /로그인이 성공|로그아웃|세션 유지|자료실 화면|비밀번호 변경이 성공|뒤에 성공|그 뒤 성공/u;
-const NO_SUCCESS = /성공은 없습니다/u;
-const T1110 = 'T1110';
-
-function count(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function base(alert) {
+// Standalone decision module: no filesystem or module imports are required.
+// Accept raw Wazuh events and the five-field summaries produced by readers.
+function normalizeAlert(alert = {}) {
+  const description = String(alert.rule?.description ?? alert.description ?? '');
+  const rawCount = alert.data?.count ?? alert.count;
+  const describedCount = description.match(/(\d+)\s*(?:건|번|회|failures|attempts)/iu)?.[1];
+  const count = Number(rawCount ?? describedCount ?? 0);
+  const level = Number(alert.rule?.level ?? alert.level ?? 0);
+  const accounts = alert.data?.accounts ?? alert.accounts;
   return {
-    id: typeof alert?.id === 'string' ? alert.id : '',
-    level: Number.isInteger(alert?.rule?.level) ? alert.rule.level : 0,
-    description: typeof alert?.rule?.description === 'string' ? alert.rule.description : '',
-    count: count(alert?.data?.count),
-    sourceIp: typeof alert?.data?.srcip === 'string' ? alert.data.srcip : '',
-    accountCount: typeof alert?.data?.accounts === 'string'
-      ? alert.data.accounts.split(',').filter(Boolean).length : 0,
-    mitre: Array.isArray(alert?.rule?.mitre) ? alert.rule.mitre : [],
+    id: String(alert.id ?? alert.alertId ?? ''), description,
+    level: Number.isFinite(level) ? level : 0,
+    count: Number.isFinite(count) && count >= 0 ? count : 0,
+    sourceIp: String(alert.data?.srcip ?? alert.sourceIp ?? alert.srcip ?? ''),
+    accountCount: Array.isArray(accounts) ? new Set(accounts).size
+      : typeof accounts === 'string' ? new Set(accounts.split(',').map(s => s.trim()).filter(Boolean)).size : 0,
   };
 }
 
-function namedPattern(name) {
-  return patterns.patterns.find(item => item.name === name)?.name ?? name;
-}
+
+const FAILURE = /실패|failed|failure|brute.?force|password guessing/iu;
 
 async function askJev(summary) {
-  const endpoint = process.env.JEV_DECISION_URL;
+  const endpoint = typeof process !== 'undefined' ? process.env?.JEV_DECISION_URL : undefined;
   if (!endpoint) return null;
   try {
     const response = await fetch(endpoint, {
@@ -61,7 +53,7 @@ export async function decide(alert) {
   const manyAccounts = item.level >= 10 && spray && (item.accountCount >= 5 || /여러 계정|계정\s*\d+개|multiple accounts/iu.test(item.description));
   if (rapid || manyAccounts) {
     return { action: 'block', confidence: rapid && manyAccounts ? 0.98 : 0.9,
-      reason: namedPattern(rapid ? 'same_source_rapid_failures' : 'same_password_many_accounts') };
+      reason: (rapid ? 'same_source_rapid_failures' : 'same_password_many_accounts') };
   }
 
   if (FAILURE.test(item.description)) {

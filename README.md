@@ -1,5 +1,13 @@
 # BYTE BACK 방어전 시작 틀 R5
 
+## XDR 격리 실행 호환성
+
+두 `decide.mjs`는 상대경로 모듈 및 JSON import 없이 독립 실행됩니다.
+Jev 설정이 없거나 process/network가 제공되지 않는 환경에서도 애매한 경보는 alert로 반환합니다.
+`node --test test/xdr-isolated.test.mjs`는 파일 하나만 가져오는 실행과 Node 전역 객체가 없는
+격리 실행을 검사합니다. 분류 기준은 유지합니다. 이 검사 환경이 실제 심판 구현과 같다는
+확인은 없으므로 심판 통과 여부는 재제출 결과로 확인해야 합니다.
+
 ## XDR 입력 호환성 보완
 
 두 decide 모듈은 원본 Wazuh 경보와 요약 경보, 숫자·문자열 수준을 정규화합니다.
