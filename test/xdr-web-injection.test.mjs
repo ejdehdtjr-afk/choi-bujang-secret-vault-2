@@ -16,6 +16,14 @@ test('web injection blocks repeated clear attacks and leaves normal requests unb
   const outcomes = await Promise.all(fixture.alerts.map(decide));
   const counts = outcomes.reduce((all, item) => ({ ...all, [item.action]: all[item.action] + 1 }),
     { block: 0, alert: 0, record: 0 });
-  assert.deepEqual(counts, { block: 8, alert: 8, record: 10 });
+  assert.deepEqual(counts, { block: 8, alert: 9, record: 9 });
   for (let index = 17; index < outcomes.length; index += 1) assert.notEqual(outcomes[index].action, 'block');
+});
+
+test('unusually long request addresses are alerted without being blocked', async () => {
+  const suspicious = await decide({level: 5, count: 1,
+    description: '요청 주소가 평소보다 깁니다. 공격 표기는 없습니다.'});
+  assert.equal(suspicious.action, 'alert');
+  const normal = await decide({level: 3, count: 1, description: '자료 목록을 조회했습니다.'});
+  assert.equal(normal.action, 'record');
 });

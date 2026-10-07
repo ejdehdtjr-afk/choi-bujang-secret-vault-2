@@ -22,7 +22,7 @@ const SQL = /SQL.*(?:구문|표식|주입)|데이터베이스 조회|sql injecti
 const SCRIPT = /스크립트.*(?:삽입|표식|주입)|script injection|cross.site scripting|<script\b/iu;
 const TRAVERSAL = /경로.*(?:거슬러|이탈|탐색)|path traversal|(?:\.\.\/){2}/iu;
 const SEPARATOR = /명령 구분자|command injection/iu;
-const AMBIGUOUS = /따옴표|select|스크립트|경로.*up|SQL|이상한 검색|주입처럼|구분 문자/u;
+const AMBIGUOUS = /따옴표|select|스크립트|경로.*up|SQL|이상한 검색|주입처럼|구분 문자|(?:요청 주소|URL|URI).*(?:평소보다\s*(?:길|깁)|비정상.*(?:길|깁))/iu;
 
 async function askJev(item) {
   const endpoint = typeof process !== 'undefined' ? process.env?.JEV_DECISION_URL : undefined;

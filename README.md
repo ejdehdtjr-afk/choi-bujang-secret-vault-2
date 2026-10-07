@@ -1,5 +1,12 @@
 # BYTE BACK 방어전 시작 틀 R5
 
+## XDR-02 긴 요청 주소 경보 보완
+
+평소보다 긴 요청 주소 경보도 애매한 웹 입력으로 알림을 남깁니다.
+뚜렷한 주입 표식이 없다는 이유만으로 정상 기록으로 내리지 않습니다.
+`npm run xdr:run -- web-injection` 재실행 결과는 block 8, alert 9, record 9이며
+정상 경보는 모두 record입니다. XDR-01의 판단 코드는 변경하지 않았습니다.
+
 ## XDR 격리 실행 호환성
 
 두 `decide.mjs`는 상대경로 모듈 및 JSON import 없이 독립 실행됩니다.

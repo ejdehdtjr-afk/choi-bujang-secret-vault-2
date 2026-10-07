@@ -5,7 +5,7 @@ import { runInNewContext } from 'node:vm';
 
 for (const [name, expected] of [
   ['brute-force', { block: 10, alert: 9, record: 9 }],
-  ['web-injection', { block: 8, alert: 8, record: 10 }],
+  ['web-injection', { block: 8, alert: 9, record: 9 }],
 ]) {
   const source = readFileSync(new URL(`../xdr/${name}/decide.mjs`, import.meta.url), 'utf8');
   const fixture = JSON.parse(readFileSync(new URL(`../xdr/fixtures/${name}.json`, import.meta.url)));
