@@ -1,5 +1,15 @@
 # BYTE BACK 방어전 시작 틀 R5
 
+## 보너스 XDR-01: 무차별 로그인 탐지
+
+`xdr/brute-force/read-alerts.mjs`는 Wazuh 모양 학습 경보에서 시각·출발 주소·계정·규칙 수준·설명만 추립니다.
+`patterns.json`은 MITRE ATT&CK T1110의 반복 실패와 다계정 대입 신호만 기록합니다.
+명확한 T1110 신호만 `block`으로 만들고, 애매한 실패는 Jev 응답이 없으면 `alert`로 남기며 정상 이벤트는 `record`로 둡니다.
+
+`npm run xdr:run -- brute-force`는 `xdr/brute-force/result.json`을 만들고, block 후보만
+만료 시각과 근거 경보 번호가 붙은 `ztna-deny-rules.json`에 씁니다. 기존 ZTNA 기본 규칙은 바꾸지 않습니다.
+알림 후보는 `xdr/alerts.log`에 한 줄씩 남습니다. 이 파일들은 수업용 가상 경보 결과이며 실제 차단 또는 운영 경보가 아닙니다.
+
 ## 5단계: 자료 요청을 서버 한곳으로 모으기
 
 브라우저의 메모 읽기·추가·수정·삭제는 `/api/notes`만 호출하고, 서버 함수만

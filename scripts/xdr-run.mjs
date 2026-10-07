@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -49,6 +49,16 @@ export async function runXdr({ root, moduleKey, writeError = (line) => console.e
     }
     decisions.push({ alertId, action, confidence, reason });
     counts[action] += 1;
+  }
+  if (moduleKey === 'brute-force') {
+    const integrationPath = join(root, 'xdr', moduleKey, 'apply-actions.mjs');
+    try {
+      await access(integrationPath);
+      const { applyActions } = await import(pathToFileURL(integrationPath).href);
+      await applyActions({ root, alerts: fixture.alerts, decisions });
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
   }
 
   const result = { schema: 'aleph.xdr.result.v1', moduleKey, decisions, counts };
