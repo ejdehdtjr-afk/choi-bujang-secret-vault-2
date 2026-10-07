@@ -30,7 +30,7 @@
 </head>
 <body>
   <main>
-    <div class="eyebrow">BYTE BACK · 3단계 로그인 자료실</div>
+    <div class="eyebrow">BYTE BACK · 5단계 서버 단일 경로 자료실</div>
     <h1>내 자료실</h1>
     <p>자료를 서버에서 불러옵니다. 아래 기록은 모두 실습을 위해 만든 가상 자료입니다.</p>
     <div class="notice">로그인한 계정으로 가상 자료를 조회합니다. 실습용 자료만 사용하세요.</div>
@@ -160,9 +160,13 @@
       return reasons[error?.code] || '인증 요청에 실패했습니다. 네트워크 연결과 계정 상태를 확인해 주세요.';
     }
     try {
+      const authResponse = await fetch('/api/auth-config', { cache: 'no-store' });
+      if (!authResponse.ok) throw new Error('AUTH_CONFIGURATION_UNAVAILABLE');
+      const authConfig = await authResponse.json();
+      if (!authConfig || typeof authConfig.url !== 'string'
+          || typeof authConfig.publishableKey !== 'string') throw new Error('AUTH_CONFIGURATION_INVALID');
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.117.2');
-      const client = createClient('https://ucuwpmimzmweehoscibe.supabase.co',
-        'sb_publishable_byQMUJmMnExVa7k-D9c1dA_WIO_YW0b');
+      const client = createClient(authConfig.url, authConfig.publishableKey);
       // SDK manages credentials and session tokens. Never print them.
       client.auth.onAuthStateChange((_event, session) => renderSession(session));
       const { data, error } = await client.auth.getSession();

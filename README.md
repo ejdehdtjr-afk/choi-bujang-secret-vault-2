@@ -1,5 +1,22 @@
 # BYTE BACK 방어전 시작 틀 R5
 
+## 5단계: 자료 요청을 서버 한곳으로 모으기
+
+브라우저의 메모 읽기·추가·수정·삭제는 `/api/notes`만 호출하고, 서버 함수만
+`public.vault_notes`에 접근합니다. 브라우저 정적 파일에는 Supabase 공개 키를
+넣지 않고 `/api/auth-config`에서 로그인 SDK 설정을 받은 뒤 기존 Auth 흐름을 시작합니다.
+이 설정 경로는 로그인용 공개 설정만 돌려주며 메모 자료를 읽거나 고치지 않습니다.
+
+`aleph.config.json`의 `originalApiUrl`은 쿼리 없는 원본 자료 HTTPS 경로입니다.
+`docs/stage-5-direct-db-revocation.sql`을 Supabase SQL Editor에서 검토·실행하면
+PUBLIC·anon·authenticated의 직접 테이블 권한이 회수됩니다. 서버 함수는
+`SUPABASE_SECRET_KEY`만 사용하므로 로그인·소유자 검사는 유지됩니다. 과거 공개
+커밋과 이전 배포의 노출이 사라졌다고 주장하지 않습니다.
+
+정상: A는 로그인 후 자기 메모를 CRUD할 수 있습니다. 거부: 비로그인 API와 원본
+자료 API 직접 요청은 401 또는 403이어야 하며, B는 A의 메모를 볼 수 없습니다.
+검사 명령: `node --test test/notes.test.mjs test/notes-auth.test.mjs test/auth-config.test.mjs test/r5.test.mjs`.
+
 ## 4단계 제작 2: 서버 소유자 검사 (배포 전)
 
 서버는 토큰에서 검증한 사용자 ID를 기준으로 목록·한 건 조회·수정·삭제를 모두

@@ -1,6 +1,29 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
+  if (config.step === 5) {
+    const attempts = [];
+    for (const [path, method, attackId, expected] of [
+      ['/api/notes', 'GET', 'anonymous_note_list', '로그인 없는 목록 조회는 HTTP 401 또는 403으로 거부'],
+      ['/api/notes', 'POST', 'anonymous_note_create', '로그인 없는 메모 추가는 HTTP 401 또는 403으로 거부'],
+      ['/api/notes/00000000-0000-4000-8000-000000000099', 'PUT', 'anonymous_note_update', '로그인 없는 메모 수정은 HTTP 401 또는 403으로 거부'],
+      ['/api/notes/00000000-0000-4000-8000-000000000099', 'DELETE', 'anonymous_note_delete', '로그인 없는 메모 삭제는 HTTP 401 또는 403으로 거부'],
+    ]) {
+      const response = await fetch(new URL(path, config.publicAppUrl), {
+        method, redirect: 'error', signal: AbortSignal.timeout(15000),
+      });
+      attempts.push({ attackId, expected, observed: `HTTP ${response.status}` });
+    }
+    const direct = await fetch(config.originalApiUrl, {
+      redirect: 'error', signal: AbortSignal.timeout(15000),
+    });
+    attempts.push({
+      attackId: 'direct_database_without_credentials',
+      expected: '원본 자료 API는 자격 증명 없이 HTTP 401 또는 403으로 거부',
+      observed: `HTTP ${direct.status}`,
+    });
+    return attempts;
+  }
   if (config.step === 4) {
     const attempts = [];
     for (const [path, method, attackId, expected] of [
