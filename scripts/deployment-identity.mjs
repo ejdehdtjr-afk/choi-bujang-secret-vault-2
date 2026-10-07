@@ -28,5 +28,7 @@ export function deploymentIdentity(env, config) {
     sampleMarker: config.sampleMarker,
     ...(config.step >= 3 && Array.isArray(config.allowedRoutes)
       ? { allowedRoutes: config.allowedRoutes } : {}),
+    ...(config.step >= 5 && typeof config.originalApiUrl === 'string'
+      ? { originalApiUrl: config.originalApiUrl } : {}),
   };
 }

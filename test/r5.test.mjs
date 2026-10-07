@@ -36,8 +36,10 @@ test('step 5 deployment identity publishes only declared API routes', () => {
     ...config,
     step: 5,
     allowedRoutes: ['GET /api/notes', 'GET /api/auth-config'],
+    originalApiUrl: 'https://example.supabase.co/rest/v1/vault_notes',
   });
   assert.deepEqual(identity.allowedRoutes, ['GET /api/notes', 'GET /api/auth-config']);
+  assert.equal(identity.originalApiUrl, 'https://example.supabase.co/rest/v1/vault_notes');
 });
 
 test('first attack check reads public data.json without credentials', async () => {
