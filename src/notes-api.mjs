@@ -99,8 +99,10 @@ export function createNotesService(verifierFactory = createLoginVerifier) {
     const identity = await authorize(request, response);
     if (!identity) return;
     if (!UUID.test(id ?? '')) return write(response, 404, { error: 'NOTE_NOT_FOUND' });
-    // Stage 3 intentionally does not compare owner_id. Stage 4 adds that check.
-    const path = `/rest/v1/vault_notes?note_id=eq.${encodeURIComponent(id)}&select=note_id,title,content`;
+    // Every item operation binds the record to the verified identity, never to
+    // a user ID supplied through the URL or request body.
+    const ownerFilter = `owner_id=eq.${encodeURIComponent(identity.userId)}`;
+    const path = `/rest/v1/vault_notes?note_id=eq.${encodeURIComponent(id)}&${ownerFilter}&select=note_id,title,content`;
     try {
       if (request.method === 'GET') {
         const rows = await (await requestDatabase(path)).json();
@@ -112,7 +114,9 @@ export function createNotesService(verifierFactory = createLoginVerifier) {
         if (!validText(input.title, 120) || !validText(input.body, 5000)) return write(response, 400, { error: 'INVALID_NOTE' });
         const rows = await (await requestDatabase(path, {
           method: 'PATCH', headers: { 'Content-Type': 'application/json', Prefer: 'return=representation' },
-          body: JSON.stringify({ title: input.title.trim(), content: input.body.trim() }),
+          // The filter proves the prior owner and this value preserves the same
+          // server-verified owner on the updated row.
+          body: JSON.stringify({ owner_id: identity.userId, title: input.title.trim(), content: input.body.trim() }),
         })).json();
         return Array.isArray(rows) && rows.length === 1
           ? write(response, 200, toNote(rows[0])) : write(response, 404, { error: 'NOTE_NOT_FOUND' });
