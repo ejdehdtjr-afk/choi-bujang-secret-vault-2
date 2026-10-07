@@ -20,7 +20,7 @@ test('brute-force decision blocks clear attacks without blocking normal alerts',
   const outcomes = await Promise.all(fixture.alerts.map(decide));
   const counts = outcomes.reduce((all, item) => ({ ...all, [item.action]: all[item.action] + 1 }),
     { block: 0, alert: 0, record: 0 });
-  assert.deepEqual(counts, { block: 10, alert: 6, record: 12 });
+  assert.deepEqual(counts, { block: 10, alert: 9, record: 9 });
   for (let index = 19; index < outcomes.length; index += 1) assert.notEqual(outcomes[index].action, 'block');
   assert.equal(outcomes[3].action, 'block');
   assert.equal(outcomes[9].action, 'block');

@@ -5,7 +5,7 @@
       "id": "brute-force-bf-01",
       "action": "deny",
       "sourceIp": "203.0.113.10",
-      "expiresAt": "2026-10-07T08:39:27.643Z",
+      "expiresAt": "2026-10-07T08:46:58.344Z",
       "evidenceAlertId": "bf-01",
       "reason": "same_source_rapid_failures"
     },
@@ -13,7 +13,7 @@
       "id": "brute-force-bf-02",
       "action": "deny",
       "sourceIp": "203.0.113.10",
-      "expiresAt": "2026-10-07T08:39:27.644Z",
+      "expiresAt": "2026-10-07T08:46:58.345Z",
       "evidenceAlertId": "bf-02",
       "reason": "same_password_many_accounts"
     },
@@ -21,7 +21,7 @@
       "id": "brute-force-bf-03",
       "action": "deny",
       "sourceIp": "198.51.100.20",
-      "expiresAt": "2026-10-07T08:39:27.644Z",
+      "expiresAt": "2026-10-07T08:46:58.345Z",
       "evidenceAlertId": "bf-03",
       "reason": "same_source_rapid_failures"
     },
@@ -29,7 +29,7 @@
       "id": "brute-force-bf-04",
       "action": "deny",
       "sourceIp": "192.0.2.30",
-      "expiresAt": "2026-10-07T08:39:27.644Z",
+      "expiresAt": "2026-10-07T08:46:58.345Z",
       "evidenceAlertId": "bf-04",
       "reason": "same_source_rapid_failures"
     },
@@ -37,7 +37,7 @@
       "id": "brute-force-bf-05",
       "action": "deny",
       "sourceIp": "203.0.113.21",
-      "expiresAt": "2026-10-07T08:39:27.644Z",
+      "expiresAt": "2026-10-07T08:46:58.345Z",
       "evidenceAlertId": "bf-05",
       "reason": "same_source_rapid_failures"
     },
@@ -45,7 +45,7 @@
       "id": "brute-force-bf-06",
       "action": "deny",
       "sourceIp": "198.51.100.44",
-      "expiresAt": "2026-10-07T08:39:27.644Z",
+      "expiresAt": "2026-10-07T08:46:58.345Z",
       "evidenceAlertId": "bf-06",
       "reason": "same_source_rapid_failures"
     },
@@ -53,7 +53,7 @@
       "id": "brute-force-bf-07",
       "action": "deny",
       "sourceIp": "203.0.113.15",
-      "expiresAt": "2026-10-07T08:39:27.644Z",
+      "expiresAt": "2026-10-07T08:46:58.345Z",
       "evidenceAlertId": "bf-07",
       "reason": "same_source_rapid_failures"
     },
@@ -61,7 +61,7 @@
       "id": "brute-force-bf-08",
       "action": "deny",
       "sourceIp": "192.0.2.18",
-      "expiresAt": "2026-10-07T08:39:27.644Z",
+      "expiresAt": "2026-10-07T08:46:58.345Z",
       "evidenceAlertId": "bf-08",
       "reason": "same_source_rapid_failures"
     },
@@ -69,7 +69,7 @@
       "id": "brute-force-bf-09",
       "action": "deny",
       "sourceIp": "198.51.100.8",
-      "expiresAt": "2026-10-07T08:39:27.644Z",
+      "expiresAt": "2026-10-07T08:46:58.345Z",
       "evidenceAlertId": "bf-09",
       "reason": "same_password_many_accounts"
     },
@@ -77,7 +77,7 @@
       "id": "brute-force-bf-10",
       "action": "deny",
       "sourceIp": "203.0.113.40",
-      "expiresAt": "2026-10-07T08:39:27.644Z",
+      "expiresAt": "2026-10-07T08:46:58.345Z",
       "evidenceAlertId": "bf-10",
       "reason": "same_source_rapid_failures"
     }

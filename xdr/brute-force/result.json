@@ -29,7 +29,7 @@
     {
       "alertId": "bf-05",
       "action": "block",
-      "confidence": 0.98,
+      "confidence": 0.9,
       "reason": "same_source_rapid_failures"
     },
     {
@@ -64,15 +64,15 @@
     },
     {
       "alertId": "bf-11",
-      "action": "record",
-      "confidence": 0.05,
-      "reason": "normal_login_event"
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "ambiguous_login_failures"
     },
     {
       "alertId": "bf-12",
-      "action": "record",
-      "confidence": 0.05,
-      "reason": "normal_login_event"
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "ambiguous_login_failures"
     },
     {
       "alertId": "bf-13",
@@ -100,9 +100,9 @@
     },
     {
       "alertId": "bf-17",
-      "action": "record",
-      "confidence": 0.05,
-      "reason": "normal_login_event"
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "ambiguous_login_failures"
     },
     {
       "alertId": "bf-18",
@@ -173,7 +173,7 @@
   ],
   "counts": {
     "block": 10,
-    "alert": 6,
-    "record": 12
+    "alert": 9,
+    "record": 9
   }
 }

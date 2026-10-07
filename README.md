@@ -1,5 +1,17 @@
 # BYTE BACK 방어전 시작 틀 R5
 
+## XDR 입력 호환성 보완
+
+두 decide 모듈은 원본 Wazuh 경보와 요약 경보, 숫자·문자열 수준을 정규화합니다.
+MITRE 태그 유무만으로 공격 근거를 버리지 않고 반복 횟수와 공격 신호를 함께 확인합니다.
+많은 인증 실패 뒤 성공해도 공격 근거를 지우지 않으며, 단발성 의심은 차단하지 않습니다.
+재실행: `npm run xdr:run -- brute-force` 및 `npm run xdr:run -- web-injection`.
+학습 결과는 각각 block/alert/record 10/9/9, 8/8/10입니다.
+입력 변형 검사는 `node --test test/xdr-input-variants.test.mjs`로 실행합니다.
+이는 로컬 학습 검사이며 비공개 심판 입력의 통과 증명은 아닙니다. 앞선 만료 시각 변경이
+CLEAR_NOT_BLOCKED의 원인이라는 주장은 확인되지 않았습니다. 현재 ZTNA 규칙 파일은
+후보 출력이며 기본 판정기에 의한 실제 차단이나 정상 접근 허용을 검증한 결과가 아닙니다.
+
 ## 보너스 XDR-02: 웹 주입 탐지
 
 `xdr/web-injection`은 MITRE ATT&CK T1190을 근거로 반복된 SQL·스크립트·경로 이탈·명령 구분자

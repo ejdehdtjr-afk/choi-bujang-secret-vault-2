@@ -1,11 +1,12 @@
 import patterns from './patterns.json' with { type: 'json' };
+import { normalizeAlert } from '../normalize-alert.mjs';
 
 const T1190 = 'T1190';
 const NORMAL = /자료 목록|정적 화면|내 메모|반 공지|새로고침|검색어 week3|파일 이름|로그아웃|정상 조회/u;
-const SQL = /SQL 구문|데이터베이스 조회|SQL 표식/u;
-const SCRIPT = /스크립트 삽입|스크립트 표식/u;
-const TRAVERSAL = /경로를 여러 단계 거슬러|경로 이탈/u;
-const SEPARATOR = /명령 구분자/u;
+const SQL = /SQL.*(?:구문|표식|주입)|데이터베이스 조회|sql injection|union\s+select/iu;
+const SCRIPT = /스크립트.*(?:삽입|표식|주입)|script injection|cross.site scripting|<script\b/iu;
+const TRAVERSAL = /경로.*(?:거슬러|이탈|탐색)|path traversal|(?:\.\.\/){2}/iu;
+const SEPARATOR = /명령 구분자|command injection/iu;
 const AMBIGUOUS = /따옴표|select|스크립트|경로.*up|SQL|이상한 검색|주입처럼|구분 문자/u;
 
 function summary(alert) {
@@ -42,12 +43,12 @@ async function askJev(item) {
 }
 
 export async function decide(alert) {
-  const item = summary(alert);
-  if (!item.id || !item.description) return { action: 'record', confidence: 0, reason: 'invalid_alert' };
-  if (NORMAL.test(item.description) || item.level <= 3) {
+  const item = normalizeAlert(alert);
+  if (!item.description) return { action: 'record', confidence: 0, reason: 'invalid_alert' };
+  if (item.level <= 3 && item.count <= 1) {
     return { action: 'record', confidence: 0.05, reason: 'normal_web_request' };
   }
-  const repeated = item.mitre.includes(T1190) && item.level >= 10 && item.count >= 8;
+  const repeated = item.level >= 10 && item.count >= 8;
   const match = repeated && ([
     [SQL, 'repeated_sql_syntax'], [SCRIPT, 'repeated_script_injection'],
     [TRAVERSAL, 'repeated_path_traversal'], [SEPARATOR, 'repeated_command_separator'],

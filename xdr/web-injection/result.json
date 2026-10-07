@@ -88,9 +88,9 @@
     },
     {
       "alertId": "wi-15",
-      "action": "record",
-      "confidence": 0.05,
-      "reason": "normal_web_request"
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "ambiguous_web_input"
     },
     {
       "alertId": "wi-16",
@@ -161,7 +161,7 @@
   ],
   "counts": {
     "block": 8,
-    "alert": 7,
-    "record": 11
+    "alert": 8,
+    "record": 10
   }
 }
