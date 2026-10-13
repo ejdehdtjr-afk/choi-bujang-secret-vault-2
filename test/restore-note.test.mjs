@@ -39,7 +39,7 @@ test('one verified owner restores one note without accepting owner or content in
         calls.push({ url: String(url), init });
         return { ok: true, json: async () => [{ restored_note_id: noteId,
           restored_owner_id: ownerId, restored_content_sha256: contentSha256 }] };
-      });
+      }, async () => true);
     const result = response();
     await handler(request(), result);
     assert.equal(result.code, 200);
@@ -66,13 +66,13 @@ test('missing or mismatched backup result never reports successful restoration',
     process.env.SUPABASE_SECRET_KEY = 'test-only-placeholder';
     const verify = () => async () => ({ userId: ownerId });
     const missing = response();
-    await createRestoreHandler(verify, async () => ({ ok: true, json: async () => [] }))(request(), missing);
+    await createRestoreHandler(verify, async () => ({ ok: true, json: async () => [] }), async () => true)(request(), missing);
     assert.equal(missing.code, 404);
     const mismatch = response();
     await createRestoreHandler(verify, async () => ({ ok: true, json: async () => [{
       restored_note_id: noteId, restored_owner_id: '00000000-0000-4000-8000-000000000001',
       restored_content_sha256: contentSha256,
-    }] }))(request(), mismatch);
+    }] }), async () => true)(request(), mismatch);
     assert.equal(mismatch.code, 502);
   } finally {
     for (const [key, value] of [['SUPABASE_URL', oldUrl], ['SUPABASE_SECRET_KEY', oldKey]]) {

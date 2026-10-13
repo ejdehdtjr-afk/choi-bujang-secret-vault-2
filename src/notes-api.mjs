@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { createLoginVerifier } from './verify-login.mjs';
+import { verifyApprovedDevice } from './device-approval.mjs';
 
 const config = JSON.parse(readFileSync(new URL('../aleph.config.json', import.meta.url), 'utf8'));
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
@@ -14,7 +15,8 @@ function write(response, status, body, headers = {}) {
   return response.status(status).json(body);
 }
 
-export function createNotesService(verifierFactory = createLoginVerifier, resource = 'notes') {
+export function createNotesService(verifierFactory = createLoginVerifier, resource = 'notes',
+  deviceVerifier = verifyApprovedDevice) {
   if (!['notes', 'announcements'].includes(resource)) throw new Error('invalid_resource');
   const announcement = resource === 'announcements';
   const table = announcement ? 'vault_announcements' : 'vault_notes';
@@ -28,7 +30,16 @@ export function createNotesService(verifierFactory = createLoginVerifier, resour
     try {
       verify ??= verifierFactory({ config, supabaseSecretKey: process.env.SUPABASE_SECRET_KEY });
       const identity = await verify(authorization);
-      if (!identity) write(response, 401, { error: 'LOGIN_REQUIRED' });
+      if (!identity) {
+        write(response, 401, { error: 'LOGIN_REQUIRED' });
+        return null;
+      }
+      let approved = false;
+      try { approved = await deviceVerifier(request, identity) === true; } catch { /* Fail closed. */ }
+      if (!approved) {
+        write(response, 403, { error: 'DEVICE_NOT_APPROVED' });
+        return null;
+      }
       return identity;
     } catch {
       write(response, 401, { error: 'LOGIN_REQUIRED' });

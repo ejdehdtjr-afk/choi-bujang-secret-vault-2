@@ -11,7 +11,7 @@ test('real verifier rejects missing, forged, expired and wrong-audience tokens b
   const handler = createNotesService(options => createLoginVerifier({ ...options,
     judgeKeySet: createLocalJWKSet({ keys: [{ ...jwk, kid:'test', alg:'ES256' }] }),
     supabaseClient: { auth: { getClaims: async () => ({ error: true }) } },
-  }));
+  }), 'notes', async () => true);
   const now = Math.floor(Date.now()/1000);
   const token = (key = pair.privateKey, overrides = {}) => new SignJWT({
     iss:'https://aleph-judge-production.up.railway.app/defense/judge',

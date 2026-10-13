@@ -1,11 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { createLoginVerifier } from './verify-login.mjs';
+import { verifyApprovedDevice } from './device-approval.mjs';
 
 const config = JSON.parse(readFileSync(new URL('../aleph.config.json', import.meta.url), 'utf8'));
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 const SHA256 = /^[0-9a-f]{64}$/u;
 
-export function createRestoreHandler(verifierFactory = createLoginVerifier, dbRequest = fetch) {
+export function createRestoreHandler(verifierFactory = createLoginVerifier, dbRequest = fetch,
+  deviceVerifier = verifyApprovedDevice) {
   let verify;
   return async function restore(request, response) {
     response.setHeader('Cache-Control', 'no-store');
@@ -27,6 +29,9 @@ export function createRestoreHandler(verifierFactory = createLoginVerifier, dbRe
     if (!identity || !UUID.test(identity.userId ?? '')) {
       return response.status(401).json({ error: 'LOGIN_REQUIRED' });
     }
+    let approved = false;
+    try { approved = await deviceVerifier(request, identity) === true; } catch { /* Fail closed. */ }
+    if (!approved) return response.status(403).json({ error: 'DEVICE_NOT_APPROVED' });
     const id = request.query?.noteId;
     const body = request.body ?? {};
     if (typeof id !== 'string' || !UUID.test(id)

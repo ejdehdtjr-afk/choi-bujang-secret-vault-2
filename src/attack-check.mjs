@@ -1,6 +1,27 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
+  if (config.step === 11) {
+    const attempts = [];
+    for (const [path, method, attackId, expected] of [
+      ['/manifest.webmanifest', 'GET', 'install_manifest', '설치형 웹앱 manifest는 HTTP 200'],
+      ['/offline.html', 'GET', 'offline_guide', '오프라인 안내는 HTTP 200'],
+      ['/api/device/status', 'GET', 'anonymous_device_status', '로그인 없는 승인 상태 조회는 HTTP 401'],
+      ['/api/device/request', 'POST', 'anonymous_device_request', '로그인 없는 승인 요청은 HTTP 401'],
+      ['/api/my/notes', 'GET', 'anonymous_own_note_list', '로그인 없는 메모 목록은 HTTP 401 또는 403'],
+      ['/aleph.json', 'GET', 'deployment_identity', '11단계 배포 식별 파일은 HTTP 200'],
+    ]) {
+      const response = await fetch(new URL(path, config.publicAppUrl), {
+        method, redirect: 'error', signal: AbortSignal.timeout(15000),
+      });
+      let detail = '';
+      if (path === '/aleph.json' && response.ok) {
+        try { detail = `, step ${(await response.json()).step}`; } catch { detail = ', invalid JSON'; }
+      }
+      attempts.push({ attackId, expected, observed: `HTTP ${response.status}${detail}` });
+    }
+    return attempts;
+  }
   if (config.step === 10) {
     const attempts = [];
     for (const [path, method, attackId, expected] of [

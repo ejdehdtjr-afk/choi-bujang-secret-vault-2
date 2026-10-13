@@ -12,7 +12,12 @@ function write(response, status, body, headers = {}) {
 // The engine's verified device-registration result is not currently exposed
 // to this app. Never infer approval from a browser flag, installation state,
 // login token, or an unverified device identifier.
-export function createDeviceApprovalService(verifierFactory = createLoginVerifier) {
+export async function verifyApprovedDevice() {
+  return false;
+}
+
+export function createDeviceApprovalService(verifierFactory = createLoginVerifier,
+  deviceVerifier = verifyApprovedDevice) {
   let verify;
   async function authorized(request, response) {
     const authorization = request.headers?.authorization;
@@ -23,7 +28,7 @@ export function createDeviceApprovalService(verifierFactory = createLoginVerifie
     try {
       verify ??= verifierFactory({ config, supabaseSecretKey: process.env.SUPABASE_SECRET_KEY });
       const identity = await verify(authorization);
-      if (identity?.userId) return true;
+      if (identity?.userId) return identity;
     } catch {
       // Fail closed when verification is unavailable.
     }
@@ -34,8 +39,12 @@ export function createDeviceApprovalService(verifierFactory = createLoginVerifie
   return {
     async status(request, response) {
       if (request.method !== 'GET') return write(response, 405, { error: 'METHOD_NOT_ALLOWED' }, { Allow: 'GET' });
-      if (!await authorized(request, response)) return;
-      return write(response, 200, { approved: false, reason: 'device_verification_unavailable' });
+      const identity = await authorized(request, response);
+      if (!identity) return;
+      let approved = false;
+      try { approved = await deviceVerifier(request, identity) === true; } catch { /* Fail closed. */ }
+      return write(response, 200, approved
+        ? { approved: true } : { approved: false, reason: 'device_verification_unavailable' });
     },
     async request(request, response) {
       if (request.method !== 'POST') return write(response, 405, { error: 'METHOD_NOT_ALLOWED' }, { Allow: 'POST' });

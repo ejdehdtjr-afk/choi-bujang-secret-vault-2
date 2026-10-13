@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { deploymentIdentity } from '../scripts/deployment-identity.mjs';
 
-test('stage 10 deployment identity exposes only the declared restore path', () => {
+test('stage 11 deployment identity keeps the declared restore path', () => {
   const config = JSON.parse(readFileSync(new URL('../aleph.config.json', import.meta.url), 'utf8'));
   const identity = deploymentIdentity({
     VERCEL_GIT_PROVIDER: 'github',
@@ -12,7 +12,7 @@ test('stage 10 deployment identity exposes only the declared restore path', () =
     VERCEL_GIT_COMMIT_SHA: 'a'.repeat(40),
     VERCEL_URL: 'choi-bujang-secret-vault-2-gamma.vercel.app',
   }, config);
-  assert.equal(identity.step, 10);
+  assert.equal(identity.step, 11);
   assert.equal(identity.restoreRoute, '/api/restore/:noteId');
   assert.deepEqual(identity.allowedRoutes, config.allowedRoutes);
   assert.equal(identity.originalApiUrl, config.originalApiUrl);

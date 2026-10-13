@@ -59,8 +59,8 @@ test('API rejects zone query selectors and body role spoofing; only stored instr
   const originalFetch = globalThis.fetch;
   const originalUrl = process.env.SUPABASE_URL;
   const originalKey = process.env.SUPABASE_SECRET_KEY;
-  const service = createNotesService(() => async () => ({ kind: 'student', userId }), 'announcements');
-  const notes = createNotesService(() => async () => ({ kind: 'student', userId }));
+  const service = createNotesService(() => async () => ({ kind: 'student', userId }), 'announcements', async () => true);
+  const notes = createNotesService(() => async () => ({ kind: 'student', userId }), 'notes', async () => true);
   let instructor = false;
   let writes = 0;
   try {

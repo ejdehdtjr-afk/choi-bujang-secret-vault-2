@@ -11,7 +11,7 @@ function response() {
 }
 
 test('authenticated notes CRUD uses verified identity and hides server credentials', async () => {
-  const service = createNotesService(() => async () => ({ userId: '00000000-0000-4000-8000-000000000001' }));
+  const service = createNotesService(() => async () => ({ userId: '00000000-0000-4000-8000-000000000001' }), 'notes', async () => true);
   const oldFetch = globalThis.fetch;
   const oldUrl = process.env.SUPABASE_URL;
   const oldKey = process.env.SUPABASE_SECRET_KEY;
@@ -59,7 +59,7 @@ test('authenticated notes CRUD uses verified identity and hides server credentia
 test('another verified identity cannot read, update, or delete a foreign note', async () => {
   const a = '00000000-0000-4000-8000-000000000001';
   const b = '00000000-0000-4000-8000-000000000002';
-  const service = createNotesService(() => async auth => ({ userId: auth === 'Bearer B' ? b : a }));
+  const service = createNotesService(() => async auth => ({ userId: auth === 'Bearer B' ? b : a }), 'notes', async () => true);
   const oldFetch = globalThis.fetch;
   const oldUrl = process.env.SUPABASE_URL;
   const oldKey = process.env.SUPABASE_SECRET_KEY;
@@ -89,7 +89,7 @@ test('another verified identity cannot read, update, or delete a foreign note', 
 test('a mixed database response cannot expose another owner through list or item GET', async () => {
   const a = '00000000-0000-4000-8000-000000000001';
   const b = '00000000-0000-4000-8000-000000000002';
-  const service = createNotesService(() => async () => ({ userId: a }));
+  const service = createNotesService(() => async () => ({ userId: a }), 'notes', async () => true);
   const oldFetch = globalThis.fetch;
   const oldUrl = process.env.SUPABASE_URL;
   const oldKey = process.env.SUPABASE_SECRET_KEY;
