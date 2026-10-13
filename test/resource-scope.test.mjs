@@ -13,12 +13,17 @@ const response = () => ({ headers: {}, setHeader(k, v) { this.headers[k] = v; },
 test('only ownership-provable list routes are allowed and earlier rules remain active', async () => {
   const { normal, suspicious } = fixtureRequests();
   assert.equal((await decide(normal)).decision, 'allow');
+  assert.equal((await decide({ ...normal, path: `/my/notes/${id}`,
+    route: 'GET /my/notes/:id' })).decision, 'allow');
   assert.equal((await decide({ ...normal, path: `/notes/${id}`,
     route: 'GET /notes/:id' })).decision, 'deny');
   assert.equal((await decide(suspicious)).decision, 'step_up');
   assert.equal((await decide({ ...normal, deviceRegistered: false })).reasonCode, 'device_not_registered');
   for (const patch of [
     { path: '/notes', route: 'GET /notes' },
+    { path: `/my/notes/${id}`, route: 'GET /notes/:id' },
+    { path: `/my/notes/${id}/extra`, route: 'GET /my/notes/:id' },
+    { path: '/my/notes/export', route: 'GET /my/notes/:id' },
     { method: 'POST', path: '/notes', route: 'POST /notes' },
     { method: 'PUT', path: `/notes/${id}`, route: 'PUT /notes/:id' },
     { path: '/notes/export' }, { path: '/notes/EXPORT' }, { path: '/notes/%65xport' },

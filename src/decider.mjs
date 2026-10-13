@@ -13,6 +13,11 @@ function permittedResource(request) {
   // verified login. A subjectId cannot prove ownership of an opaque note ID,
   // so individual note routes stay out of the engine allow-list.
   if (service === 'notes' && path === '/my/notes') return route === 'GET /my/notes';
+  if (service === 'notes' && typeof path === 'string') {
+    const item = /^\/my\/notes\/([a-z0-9_-]{1,128})$/iu.exec(path);
+    return Boolean(item && !['export', 'import', 'search', 'bulk', 'admin'].includes(item[1].toLowerCase())
+      && route === 'GET /my/notes/:id');
+  }
   if (service === 'announcements' && path === '/announcements') {
     return route === 'GET /announcements';
   }

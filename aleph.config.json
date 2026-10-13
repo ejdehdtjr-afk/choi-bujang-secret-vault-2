@@ -11,6 +11,7 @@
   },
   "allowedRoutes": [
     "GET /api/my/notes",
+    "GET /api/my/notes/:id",
     "GET /api/auth-config",
     "GET /api/announcements"
   ],
