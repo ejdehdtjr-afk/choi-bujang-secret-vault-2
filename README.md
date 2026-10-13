@@ -1,5 +1,17 @@
 # BYTE BACK 방어전 시작 틀 R5
 
+## 6단계: 등록한 기기만 자료실에 들어오기
+
+판정 요청의 `subjectId`는 판정 엔진이 만든 가명 사용자 식별자이고,
+`deviceRegistered`는 같은 요청 최상위에 들어오는 기기 등록 여부입니다.
+`src/decider.mjs`의 `device_registered` 규칙은 `deviceRegistered === true`인
+요청만 `allow`하며, 값이 없거나 `false`이면 `deny`와
+`device_not_registered`로 거부합니다. 인증서·CA·서명 키는 만들거나 저장하지 않습니다.
+
+확인 명령은 `npm run decider:test`입니다. 출력에서 `등록 기기의 정상 요청`과
+`미등록 기기의 가상 요청`이 모두 `통과`여야 합니다. 이 명령은 로컬 가상 요청을
+검사하며 실제 심판 공격을 대신하지 않습니다. 별도의 접속 프로그램 설치는 필요 없습니다.
+
 ## XDR-02 긴 요청 주소 경보 보완
 
 평소보다 긴 요청 주소 경보도 애매한 웹 입력으로 알림을 남깁니다.
