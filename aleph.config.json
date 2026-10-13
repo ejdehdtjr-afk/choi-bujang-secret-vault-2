@@ -10,17 +10,11 @@
     "jwksUrl": "https://ucuwpmimzmweehoscibe.supabase.co/auth/v1/.well-known/jwks.json"
   },
   "allowedRoutes": [
-    "GET /api/notes",
-    "POST /api/notes",
+    "GET /api/my/notes",
     "GET /api/notes/:id",
-    "PUT /api/notes/:id",
-    "DELETE /api/notes/:id",
     "GET /api/auth-config",
     "GET /api/announcements",
-    "POST /api/announcements",
-    "GET /api/announcements/:id",
-    "PUT /api/announcements/:id",
-    "DELETE /api/announcements/:id"
+    "GET /api/announcements/:id"
   ],
   "originalApiUrl": "https://ucuwpmimzmweehoscibe.supabase.co/rest/v1/vault_notes",
   "restoreRoute": null

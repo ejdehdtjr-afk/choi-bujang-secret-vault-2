@@ -5,21 +5,22 @@ export const RULE_IDS = Object.freeze(['device_registered', 'step_up_required', 
 function permittedResource(request) {
   if (typeof request.subjectId !== 'string' || !request.subjectId
       || !/^[a-f0-9]{16}$/u.test(request.deviceId ?? '')) return false;
-  const { service, method, path, route } = request;
+  const { service, method, path, route, queryLength } = request;
   if (!['notes', 'announcements'].includes(service)) return false;
-  // Ownership stays with the final API: subjectId is not a Supabase user UUID.
-  // The engine does not currently supply instructor grants, so notice writes deny.
-  if (service === 'announcements' && method !== 'GET') return false;
-  if (path === `/${service}`) {
-    return ['GET', 'POST'].includes(method) && route === `${method} /${service}`;
+  if (queryLength !== 0 || method !== 'GET') return false;
+
+  // The explicit self-list route is safe because its API binds the query to the
+  // verified login. The ambiguous /notes collection is deliberately unregistered.
+  if (service === 'notes' && path === '/my/notes') return route === 'GET /my/notes';
+  if (service === 'announcements' && path === '/announcements') {
+    return route === 'GET /announcements';
   }
   const id = typeof path === 'string' ? path.slice(service.length + 2) : '';
   return typeof path === 'string' && path.startsWith(`/${service}/`)
     // Engine resource IDs are opaque, not necessarily database UUIDs.
     && /^[a-z0-9_-]{1,128}$/iu.test(id)
     && !['export', 'import', 'search', 'bulk', 'admin'].includes(id.toLowerCase())
-    && ['GET', 'PUT', 'DELETE'].includes(method)
-    && route === `${method} /${service}/:id`;
+    && route === `GET /${service}/:id`;
 }
 
 function isCompositeVirtualRisk(request) {

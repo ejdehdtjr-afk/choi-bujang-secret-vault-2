@@ -132,7 +132,7 @@
       if (!session?.access_token) { show('로그인하면 자료를 불러옵니다.'); return; }
       show('자료를 불러오는 중입니다.');
       try {
-        const data = await api('/api/notes');
+        const data = await api('/api/my/notes');
         if (version !== loadVersion) return;
         if (!Array.isArray(data)) throw new Error('REQUEST_FAILED');
         renderNotes(data);
