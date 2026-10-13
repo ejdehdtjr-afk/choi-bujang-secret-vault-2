@@ -14,7 +14,10 @@ function write(response, status, body, headers = {}) {
   return response.status(status).json(body);
 }
 
-export function createNotesService(verifierFactory = createLoginVerifier) {
+export function createNotesService(verifierFactory = createLoginVerifier, resource = 'notes') {
+  if (!['notes', 'announcements'].includes(resource)) throw new Error('invalid_resource');
+  const announcement = resource === 'announcements';
+  const table = announcement ? 'vault_announcements' : 'vault_notes';
   let verify;
   async function authorize(request, response) {
     const authorization = request.headers?.authorization;
@@ -56,15 +59,39 @@ export function createNotesService(verifierFactory = createLoginVerifier) {
     return { id: row.note_id, title: row.title, body: row.content };
   }
 
+  async function checkResource(request, response, identity) {
+    response.setHeader('X-Resource-ID', resource);
+    // Only routing's item id may appear in query. Queries never select a zone or action.
+    if (Object.keys(request.query ?? {}).some(key => key !== 'id')) {
+      write(response, 400, { error: 'RESOURCE_QUERY_NOT_ALLOWED' });
+      return false;
+    }
+    if (!announcement || request.method === 'GET') return true;
+    // Judge and student token labels are not instructor grants.
+    if (identity.kind !== 'student') {
+      write(response, 403, { error: 'INSTRUCTOR_REQUIRED' });
+      return false;
+    }
+    try {
+      const rows = await (await requestDatabase(`/rest/v1/vault_instructors?user_id=eq.${encodeURIComponent(identity.userId)}&select=user_id`)).json();
+      if (Array.isArray(rows) && rows.length === 1 && rows[0].user_id === identity.userId) return true;
+    } catch {
+      // A missing/unavailable role registry must never grant a write.
+    }
+    write(response, 403, { error: 'INSTRUCTOR_REQUIRED' });
+    return false;
+  }
+
   async function collection(request, response) {
     response.setHeader('Cache-Control', 'no-store');
     const identity = await authorize(request, response);
     if (!identity) return;
+    if (!await checkResource(request, response, identity)) return;
     if (request.method === 'GET') {
       try {
-        const url = new URL('/rest/v1/vault_notes', process.env.SUPABASE_URL);
+        const url = new URL(`/rest/v1/${table}`, process.env.SUPABASE_URL);
         url.searchParams.set('select', 'note_id,title,content');
-        url.searchParams.set('owner_id', `eq.${identity.userId}`);
+        if (!announcement) url.searchParams.set('owner_id', `eq.${identity.userId}`);
         url.searchParams.set('order', 'id.asc');
         const rows = await (await requestDatabase(`${url.pathname}${url.search}`)).json();
         if (!Array.isArray(rows)) throw new Error('invalid_database_response');
@@ -80,7 +107,7 @@ export function createNotesService(verifierFactory = createLoginVerifier) {
         return write(response, 400, { error: 'INVALID_NOTE' });
       }
       try {
-        const result = await requestDatabase('/rest/v1/vault_notes', {
+        const result = await requestDatabase(`/rest/v1/${table}`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'return=representation' },
           body: JSON.stringify({ note_id: id, owner_id: identity.userId, title: input.title.trim(), content: input.body.trim() }),
         });
@@ -98,11 +125,12 @@ export function createNotesService(verifierFactory = createLoginVerifier) {
     response.setHeader('Cache-Control', 'no-store');
     const identity = await authorize(request, response);
     if (!identity) return;
+    if (!await checkResource(request, response, identity)) return;
     if (!UUID.test(id ?? '')) return write(response, 404, { error: 'NOTE_NOT_FOUND' });
     // Every item operation binds the record to the verified identity, never to
     // a user ID supplied through the URL or request body.
-    const ownerFilter = `owner_id=eq.${encodeURIComponent(identity.userId)}`;
-    const path = `/rest/v1/vault_notes?note_id=eq.${encodeURIComponent(id)}&${ownerFilter}&select=note_id,title,content`;
+    const ownerFilter = announcement ? '' : `&owner_id=eq.${encodeURIComponent(identity.userId)}`;
+    const path = `/rest/v1/${table}?note_id=eq.${encodeURIComponent(id)}${ownerFilter}&select=note_id,title,content`;
     try {
       if (request.method === 'GET') {
         const rows = await (await requestDatabase(path)).json();

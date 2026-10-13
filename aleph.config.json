@@ -1,5 +1,5 @@
 {
-  "step": 7,
+  "step": 8,
   "repoUrl": "https://github.com/ejdehdtjr-afk/choi-bujang-secret-vault-2",
   "publicAppUrl": "https://choi-bujang-secret-vault-2-gamma.vercel.app",
   "sampleMarker": "SAMPLE_NOTE_1",
@@ -15,7 +15,12 @@
     "GET /api/notes/:id",
     "PUT /api/notes/:id",
     "DELETE /api/notes/:id",
-    "GET /api/auth-config"
+    "GET /api/auth-config",
+    "GET /api/announcements",
+    "POST /api/announcements",
+    "GET /api/announcements/:id",
+    "PUT /api/announcements/:id",
+    "DELETE /api/announcements/:id"
   ],
   "originalApiUrl": "https://ucuwpmimzmweehoscibe.supabase.co/rest/v1/vault_notes",
   "restoreRoute": null

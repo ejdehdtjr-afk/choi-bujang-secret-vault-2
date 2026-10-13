@@ -1,6 +1,24 @@
 // ALEPH SDP 엔진이 확인한 요청만 받는 학생 판정기입니다.
 // 요청 본문의 userId, role, 기기 키, 토큰을 별도로 믿거나 저장하지 마세요.
-export const RULE_IDS = Object.freeze(['device_registered', 'step_up_required']);
+export const RULE_IDS = Object.freeze(['device_registered', 'step_up_required', 'resource_scope']);
+
+function permittedResource(request) {
+  if (typeof request.subjectId !== 'string' || !request.subjectId
+      || !/^[a-f0-9]{16}$/u.test(request.deviceId ?? '')) return false;
+  const { service, method, path, route } = request;
+  if (!['notes', 'announcements'].includes(service)) return false;
+  // Ownership stays with the final API: subjectId is not a Supabase user UUID.
+  // The engine does not currently supply instructor grants, so notice writes deny.
+  if (service === 'announcements' && method !== 'GET') return false;
+  if (path === `/${service}`) {
+    return ['GET', 'POST'].includes(method) && route === `${method} /${service}`;
+  }
+  const id = typeof path === 'string' ? path.slice(service.length + 2) : '';
+  return typeof path === 'string' && path.startsWith(`/${service}/`)
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(id)
+    && ['GET', 'PUT', 'DELETE'].includes(method)
+    && route === `${method} /${service}/:id`;
+}
 
 function isCompositeVirtualRisk(request) {
   const signals = request?.signals;
@@ -29,6 +47,10 @@ export async function decide(request) {
   if (!registered) {
     decision = 'deny';
     reasonCode = 'device_not_registered';
+  } else if (!permittedResource(request)) {
+    decision = 'deny';
+    reasonCode = 'resource_not_allowed';
+    ruleIds = [RULE_IDS[0], RULE_IDS[2]];
   } else if (compositeRisk && !freshStepUp) {
     decision = 'step_up';
     reasonCode = 'step_up_required';

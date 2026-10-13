@@ -1,5 +1,29 @@
 # BYTE BACK 방어전 시작 틀 R5
 
+## 8단계: 자료 구역 분리
+
+자원 ID `notes`는 기존 `/api/notes`와 `vault_notes`를 사용하고 소유자 필터를 유지합니다.
+자원 ID `announcements`는 `/api/announcements`와 별도 `vault_announcements`를 사용합니다.
+API 응답의 X-Resource-ID로 구역을 식별하며 메뉴와 기존 메모는 바꾸지 않았습니다.
+공지 쓰기는 검증된 student 사용자와 서버 전용 `vault_instructors` 등록부를 대조합니다.
+학생이 보낸 role과 owner_id는 권한 근거가 아닙니다. 등록부 확인 실패도 403입니다.
+메모 목록은 자기 행만 조회하고 타인 항목은 404, 쿼리로 구역·기능을 고르면 400입니다.
+
+판정기의 resource_scope는 엔진의 subjectId·deviceId와 service·method·path·route를
+검사합니다. 항목 ID는 UUID만 허용하며 export 같은 기능명, 추가 깊이, 알 수 없는 경로는
+deny/resource_not_allowed입니다. 기기 규칙과 추가 확인 규칙을 유지합니다.
+현재 엔진 계약은 가명 subjectId와 DB 소유자의 대응 및 강사 역할을 제공하지 않습니다.
+따라서 판정기만으로 A/B 소유권을 확인했다고 주장하지 않습니다. 최종 API가 소유자를
+검사하며 엔진의 공지 쓰기는 기본 거부합니다. 운영 등록부의 resource_not_allowed 허용
+여부는 제공 문서에 없어 운영 측 확인이 필요합니다.
+
+DB 준비: docs/stage-8-resources.sql을 Supabase SQL Editor에서 실행합니다.
+기존 메모는 수정하지 않습니다. 강사 등록은 운영자가 DB에서 부여해야 하며 기본은 빈 등록부입니다.
+이 저장점에서 SQL의 실제 DB 적용과 실제 강사 계정 쓰기 시험은 미실행입니다.
+검사: `node --test test/resource-scope.test.mjs test/notes.test.mjs` 및
+`npm run decider:test`. 모의 DB 시험에서 A의 CRUD, 타인 항목 거부, role 위조 거부,
+등록 강사 허용과 등록부 장애 시 거부를 확인합니다. 이는 심판 통과 증거가 아닙니다.
+
 ## 7단계: 평소와 다른 접속 다시 확인하기
 
 판정기는 엔진이 검증해 전달한 `signals`와 `recentEvents`만 읽습니다. 출처가
