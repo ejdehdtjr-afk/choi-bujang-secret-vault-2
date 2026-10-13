@@ -3,8 +3,10 @@
 ## 8단계: 자료 구역 분리
 
 자기 목록은 명시적인 `GET /api/my/notes`를 사용하며 `vault_notes`의 검증된 사용자
-소유자 필터를 유지합니다. 모호한 `GET /api/notes`는 판정기 허용 경로에서 제외했습니다.
-한 건 읽기는 정확한 `GET /api/notes/:id`만 허용하고 API가 ID와 소유자를 함께 대조합니다.
+소유자 필터를 유지합니다. 모호한 `GET /api/notes`는 판정기 허용 경로에서 제외하고
+서버도 403으로 거부합니다. 메모 생성 POST만 기존 경로에서 유지합니다.
+개별 메모 경로는 판정기 입력에 소유자 대응 정보가 없으므로 허용표에서 제외합니다.
+자료 API 자체는 ID와 소유자를 함께 대조해 자기 메모의 한 건 읽기·수정·삭제를 유지합니다.
 자원 ID `announcements`는 `/api/announcements`와 별도 `vault_announcements`를 사용합니다.
 API 응답의 X-Resource-ID로 구역을 식별하며 메뉴와 기존 메모는 바꾸지 않았습니다.
 공지 쓰기는 검증된 student 사용자와 서버 전용 `vault_instructors` 등록부를 대조합니다.
@@ -12,9 +14,9 @@ API 응답의 X-Resource-ID로 구역을 식별하며 메뉴와 기존 메모는
 메모 목록은 자기 행만 조회하고 타인 항목은 404, 쿼리로 구역·기능을 고르면 400입니다.
 
 판정기의 resource_scope는 엔진의 subjectId·deviceId와 service·method·path·route를
-검사합니다. 자기 목록과 정확한 한 건 읽기만 허용하며, 소유권·강사 권한 증거가 없는
-POST·PUT·PATCH·DELETE는 거부합니다. 항목 ID는 안전한 단일 경로 조각을 허용하며
-export 같은 기능명, 추가 깊이, 쿼리 선택, 알 수 없는 경로는 deny/resource_not_allowed입니다.
+검사합니다. 소유권을 증명할 수 있는 자기 목록과 공지 목록만 허용하며, 개별 메모 ID,
+소유권·강사 권한 증거가 없는 POST·PUT·PATCH·DELETE, 기능 경로, 쿼리 선택,
+알 수 없는 경로는 deny/resource_not_allowed입니다.
 기기 규칙과 추가 확인 규칙을 유지합니다.
 현재 엔진 계약은 가명 subjectId와 DB 소유자의 대응 및 강사 역할을 제공하지 않습니다.
 따라서 판정기만으로 A/B 소유권을 확인했다고 주장하지 않습니다. 최종 API가 소유자를

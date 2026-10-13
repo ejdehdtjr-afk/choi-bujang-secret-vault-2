@@ -3,17 +3,18 @@ import assert from 'node:assert/strict';
 import { decide } from '../src/decider.mjs';
 import { fixtureRequests } from '../scripts/fixture-7.mjs';
 import { createNotesService } from '../src/notes-api.mjs';
+import notesCollectionHandler from '../api/notes.js';
 
 const id = '00000000-0000-4000-8000-000000000010';
 const userId = '00000000-0000-4000-8000-000000000001';
 const response = () => ({ headers: {}, setHeader(k, v) { this.headers[k] = v; },
   status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } });
 
-test('resource routes are exact and device and step-up rules remain active', async () => {
+test('only ownership-provable list routes are allowed and earlier rules remain active', async () => {
   const { normal, suspicious } = fixtureRequests();
   assert.equal((await decide(normal)).decision, 'allow');
   assert.equal((await decide({ ...normal, path: `/notes/${id}`,
-    route: 'GET /notes/:id' })).decision, 'allow');
+    route: 'GET /notes/:id' })).decision, 'deny');
   assert.equal((await decide(suspicious)).decision, 'step_up');
   assert.equal((await decide({ ...normal, deviceRegistered: false })).reasonCode, 'device_not_registered');
   for (const patch of [
@@ -72,4 +73,11 @@ test('API rejects zone query selectors and body role spoofing; only stored instr
       if (value === undefined) delete process.env[key]; else process.env[key] = value;
     }
   }
+});
+
+test('legacy notes collection never exposes a list', () => {
+  const res = response();
+  notesCollectionHandler({ method: 'GET', headers: {} }, res);
+  assert.equal(res.code, 403);
+  assert.deepEqual(res.body, { error: 'USE_SELF_LIST_ROUTE' });
 });

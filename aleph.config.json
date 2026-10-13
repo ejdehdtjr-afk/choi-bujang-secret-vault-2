@@ -11,10 +11,8 @@
   },
   "allowedRoutes": [
     "GET /api/my/notes",
-    "GET /api/notes/:id",
     "GET /api/auth-config",
-    "GET /api/announcements",
-    "GET /api/announcements/:id"
+    "GET /api/announcements"
   ],
   "originalApiUrl": "https://ucuwpmimzmweehoscibe.supabase.co/rest/v1/vault_notes",
   "restoreRoute": null

@@ -10,17 +10,13 @@ function permittedResource(request) {
   if (queryLength !== 0 || method !== 'GET') return false;
 
   // The explicit self-list route is safe because its API binds the query to the
-  // verified login. The ambiguous /notes collection is deliberately unregistered.
+  // verified login. A subjectId cannot prove ownership of an opaque note ID,
+  // so individual note routes stay out of the engine allow-list.
   if (service === 'notes' && path === '/my/notes') return route === 'GET /my/notes';
   if (service === 'announcements' && path === '/announcements') {
     return route === 'GET /announcements';
   }
-  const id = typeof path === 'string' ? path.slice(service.length + 2) : '';
-  return typeof path === 'string' && path.startsWith(`/${service}/`)
-    // Engine resource IDs are opaque, not necessarily database UUIDs.
-    && /^[a-z0-9_-]{1,128}$/iu.test(id)
-    && !['export', 'import', 'search', 'bulk', 'admin'].includes(id.toLowerCase())
-    && route === `GET /${service}/:id`;
+  return false;
 }
 
 function isCompositeVirtualRisk(request) {
