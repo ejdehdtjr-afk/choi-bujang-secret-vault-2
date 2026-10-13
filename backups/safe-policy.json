@@ -1,0 +1,13 @@
+{
+  "schema": "aleph.safe-policy.v1",
+  "sourceCommit": "36e7fca210064e43b6157b5e87f4bc1aacaa939f",
+  "policyRevision": 1,
+  "deciderSha256": "dc290488c36d84c2bf00a7f0acf9e0e47b6d25ecd02af4f20274936b347a3e06",
+  "allowedRoutes": [
+    { "service": "notes", "method": "GET", "pathPattern": "/api/my/notes", "zone": "my-notes" },
+    { "service": "notes", "method": "GET", "pathPattern": "/notes/:id", "zone": "my-notes" },
+    { "service": "notes", "method": "GET", "pathPattern": "/api/notes/:id", "zone": "my-notes" },
+    { "service": "notes", "method": "GET", "pathPattern": "/api/my/notes/:id", "zone": "my-notes" },
+    { "service": "announcements", "method": "GET", "pathPattern": "/api/announcements", "zone": "class-notices" }
+  ]
+}

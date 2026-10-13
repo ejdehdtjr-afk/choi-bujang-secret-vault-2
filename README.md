@@ -1,5 +1,48 @@
 # BYTE BACK 방어전 시작 틀 R5
 
+## 10단계: 비공개 사본에서 한 건 복원
+
+정책은 `backups/safe-policy.json`에 기록한 9단계 커밋과 Git 객체를 다시 읽어
+검증합니다. `node scripts/restore-test-policy.mjs`는 운영 정책을 바꾸지 않고
+`policy/test-policy.json`과 사본의 정책 버전·판정기 해시·허용 경로 차이만 보여 줍니다.
+사본이 없거나 해시·커밋이 맞지 않으면 중단합니다. 시험 정책 변경이 필요할 때만
+미리 본 해시를 `--apply --confirm <표시된 해시>`에 넣어 적용합니다. 시험 정책의
+다른 서비스 항목은 유지하고 `policy/restore-audit.jsonl`에 복구 사건을 추가합니다.
+이 정책 사본은 로컬 검사 기준이며 8~9단계의 심판 통과가 확인된 운영 사본이라는
+뜻은 아닙니다. 운영 판정기 코드나 엔진 정책을 이 명령으로 되돌리지 않습니다.
+
+자료는 먼저 `docs/stage-10-private-backup.sql`을 Supabase SQL Editor에서
+**시험 침해 전에** 실행해야 합니다. 이때 기존 메모를 `vault_private.note_backups`에
+한 번만 고정하고 이후 생성되는 메모는 INSERT 시 자동으로 사본을 남깁니다.
+사본 스키마는 공개 Data API에서 읽을 수 없고, anon·authenticated에 권한을
+주지 않습니다. 사본의 내용은 Git·화면·응답에 넣지 않습니다. 이미 변조된 뒤
+실행한 SQL로는 안전한 이전 버전을 재구성할 수 없습니다.
+2026-10-13 SQL Editor 적용 직후 사본 3건·현재 메모 4건, 소유자가 있는
+메모의 사본 누락 0건·사본 해시 불일치 0건·INSERT 트리거 1개를 확인했습니다.
+복구 RPC 직접 권한은 anon·authenticated `false`, service_role `true`였습니다.
+`docs/stage-10-restore-dry-run.sql`의 가상 한 건에 대해 수정 후 복원·삭제 후
+복원을 트랜잭션 안에서 확인하고 롤백했습니다. 롤백 후 사본 3건·감사 0건으로
+돌아왔습니다. 이는 B의 실제 자료가 복원됐다는 뜻은 아닙니다.
+
+복구 서비스는 `POST /api/restore/:noteId` (`notes`의 한 건 복구)입니다.
+`aleph.config.json`의 `restoreRoute`에 이 경로를 적었습니다. 서버가 로그인 토큰을
+검증한 사용자 ID와 비공개 사본의 소유자를 대조합니다. 요청 본문의 소유자·내용은
+받지 않으며, 서버 전용 Supabase RPC가 해당 ID 한 건만 원자적으로 삽입 또는
+갱신합니다. 결과의 ID·소유자·제목과 내용의 SHA-256을 확인한 뒤 비공개 감사표에
+한 줄을 추가합니다. 응답에는 본문 없이 ID·소유자 ID·해시만 나옵니다. 사본이
+없거나 검증에 실패하면 다른 메모를 건드리지 않고 거부합니다. 기존 감사 기록은
+삭제하지 않습니다. 배포 전 SQL을 적용하지 않았다면 복구는 성공하지 않습니다.
+
+복구 후 재시험 순서: (1) `npm run build -- --local`로 정적 메모 0건을 확인,
+(2) `node --test test/notes.test.mjs test/resource-scope.test.mjs test/restore-note.test.mjs`
+로 자기 CRUD·타인 메모와 공지 거부·복구 범위를 확인,
+(3) `npm run decider:test`와 `npm run fixture:7`로 등록 기기·재인증·경로 거부를 확인,
+(4) `npm run detect:test`로 정상 조회와 폭주 조회를 대조,
+(5) 배포에서 비로그인 목록·복구 POST 거부를 확인,
+(6) 시험 계정 B의 *가상 메모 한 건*을 복구한 경우에만 ID·소유자·해시와 복구 전후
+내용을 사본과 대조합니다. B 실제 복구와 A/B 로그인 HTTP 재시험, 심판의 1~9단계
+공격 재전송은 현재 미실행이며 결과를 성공으로 표시하지 않습니다.
+
 ## 9단계: 가상 도플갱어 조회 탐지와 회수 제안
 
 `src/detect.mjs`는 반 엔진이 검증해 전달한 사건의 시각, GET 메서드와 가명
