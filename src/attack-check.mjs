@@ -1,6 +1,19 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
+  if (config.step === 7) {
+    const attempts = [];
+    for (const [path, attackId, expected] of [
+      ['/api/notes', 'anonymous_note_list', '로그인 없는 자료실 조회는 HTTP 401 또는 403으로 거부'],
+      ['/aleph.json', 'deployment_identity', '배포 식별 파일이 HTTP 200으로 열림'],
+    ]) {
+      const response = await fetch(new URL(path, config.publicAppUrl), {
+        method: 'GET', redirect: 'error', signal: AbortSignal.timeout(15000),
+      });
+      attempts.push({ attackId, expected, observed: `HTTP ${response.status}` });
+    }
+    return attempts;
+  }
   if (config.step === 6) {
     const attempts = [];
     for (const [path, attackId, expected] of [

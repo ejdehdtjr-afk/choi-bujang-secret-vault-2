@@ -1,14 +1,47 @@
 // ALEPH SDP 엔진이 확인한 요청만 받는 학생 판정기입니다.
 // 요청 본문의 userId, role, 기기 키, 토큰을 별도로 믿거나 저장하지 마세요.
-export const RULE_IDS = Object.freeze(['device_registered']);
+export const RULE_IDS = Object.freeze(['device_registered', 'step_up_required']);
+
+function isCompositeVirtualRisk(request) {
+  const signals = request?.signals;
+  if (!signals || signals.source !== 'judge_fixture') return false;
+
+  const unusualHour = Number.isInteger(signals.hour)
+    && (signals.hour < 6 || signals.hour >= 22);
+  const unfamiliarNetwork = signals.network === 'unusual';
+  const suddenBulkRead = Array.isArray(request.recentEvents)
+    && request.recentEvents.some(event => event?.kind === 'risk_signal'
+      && Number.isInteger(event.count) && event.count >= 20);
+  return unusualHour && unfamiliarNetwork && suddenBulkRead;
+}
 
 export async function decide(request) {
   const registered = request?.deviceRegistered === true;
+  const compositeRisk = isCompositeVirtualRisk(request);
+  const freshStepUp = request?.stepUp?.verified === true
+    && Number.isInteger(request.stepUp.authAgeSeconds)
+    && request.stepUp.authAgeSeconds >= 0
+    && request.stepUp.authAgeSeconds <= 900;
+
+  let decision = 'allow';
+  let reasonCode = 'approved';
+  let ruleIds = [RULE_IDS[0]];
+  if (!registered) {
+    decision = 'deny';
+    reasonCode = 'device_not_registered';
+  } else if (compositeRisk && !freshStepUp) {
+    decision = 'step_up';
+    reasonCode = 'step_up_required';
+    ruleIds = [...RULE_IDS];
+  } else if (compositeRisk) {
+    ruleIds = [...RULE_IDS];
+  }
+
   return {
     schema: 'aleph.decision.v1',
     requestId: request?.requestId,
-    decision: registered ? 'allow' : 'deny',
-    reasonCode: registered ? 'approved' : 'device_not_registered',
-    ruleIds: [RULE_IDS[0]],
+    decision,
+    reasonCode,
+    ruleIds,
   };
 }
