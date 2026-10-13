@@ -1,5 +1,21 @@
 # BYTE BACK 방어전 시작 틀 R5
 
+## 9단계: 가상 도플갱어 조회 탐지와 회수 제안
+
+`src/detect.mjs`는 반 엔진이 검증해 전달한 사건의 시각, GET 메서드와 가명
+`identity.sub`만 읽습니다. 같은 가명 사용자의 조회가 어느 10분 구간에서든
+120건을 넘으면 별도 결과 `{ action: 'propose_revocation', reasonCode: 'burst_read', subject }`를
+돌려줍니다. 정확히 120건, 서로 다른 사용자의 조회 합계, 10분 밖으로 흩어진
+조회는 `observe`입니다. 기존 `decide(request)`의 허용·거부 응답은 바꾸지 않습니다.
+
+확인: `npm run detect:test`로 6가지 가상 사건을 연습합니다. 기존 기기·추가 인증·
+구역 규칙은 `npm run decider:test`와 `npm run fixture:7`로 다시 확인합니다.
+제공된 `docs/DETECT_EVENTS.md` 계약에는 네트워크와 기기 ID가 없으므로 네트워크
+복합 신호나 기기 한 개를 확인할 수 없습니다. `subject`는 가명 사용자이며 기기 ID가
+아닙니다. 탐지기는 회수 제안만 반환하고 실제 권한·세션 회수나 경과 시간 측정은
+수행하지 않습니다. 운영 반 엔진의 검증 사건 전달·기기 회수 연결과 심판 판정은
+미검증입니다. 메모 본문·토큰·실명은 탐지 결과에 포함하지 않습니다.
+
 ## 8단계: 자료 구역 분리
 
 자기 목록은 명시적인 `GET /api/my/notes`를 사용하며 `vault_notes`의 검증된 사용자

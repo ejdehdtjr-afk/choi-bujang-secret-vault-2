@@ -1,7 +1,7 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
-  if (config.step === 8) {
+  if (config.step === 8 || config.step === 9) {
     const attempts = [];
     for (const [path, attackId, expected] of [
       ['/api/my/notes', 'anonymous_own_note_list', '로그인 없는 자기 자료실 조회는 HTTP 401 또는 403으로 거부'],
