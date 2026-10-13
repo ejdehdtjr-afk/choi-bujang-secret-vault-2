@@ -12,10 +12,12 @@ const response = () => ({ headers: {}, setHeader(k, v) { this.headers[k] = v; },
 test('resource routes are exact and device and step-up rules remain active', async () => {
   const { normal, suspicious } = fixtureRequests();
   assert.equal((await decide(normal)).decision, 'allow');
+  assert.equal((await decide({ ...normal, path: `/notes/${id}` })).decision, 'allow');
   assert.equal((await decide(suspicious)).decision, 'step_up');
   assert.equal((await decide({ ...normal, deviceRegistered: false })).reasonCode, 'device_not_registered');
   for (const patch of [
-    { path: '/notes/export' }, { path: `${normal.path}/extra` },
+    { path: '/notes/export' }, { path: '/notes/EXPORT' }, { path: '/notes/%65xport' },
+    { path: '/notes/..' }, { path: `${normal.path}/extra` },
     { path: `${normal.path}?action=export` }, { method: 'PATCH' },
     { route: 'GET /announcements/:id' }, { subjectId: '' },
     { service: 'announcements', method: 'PUT', path: `/announcements/${id}`, route: 'PUT /announcements/:id', role: 'instructor' },

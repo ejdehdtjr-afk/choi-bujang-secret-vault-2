@@ -10,7 +10,7 @@ API 응답의 X-Resource-ID로 구역을 식별하며 메뉴와 기존 메모는
 메모 목록은 자기 행만 조회하고 타인 항목은 404, 쿼리로 구역·기능을 고르면 400입니다.
 
 판정기의 resource_scope는 엔진의 subjectId·deviceId와 service·method·path·route를
-검사합니다. 항목 ID는 UUID만 허용하며 export 같은 기능명, 추가 깊이, 알 수 없는 경로는
+검사합니다. 항목 ID는 안전한 단일 경로 조각을 허용하며 export 같은 기능명, 추가 깊이, 알 수 없는 경로는
 deny/resource_not_allowed입니다. 기기 규칙과 추가 확인 규칙을 유지합니다.
 현재 엔진 계약은 가명 subjectId와 DB 소유자의 대응 및 강사 역할을 제공하지 않습니다.
 따라서 판정기만으로 A/B 소유권을 확인했다고 주장하지 않습니다. 최종 API가 소유자를
