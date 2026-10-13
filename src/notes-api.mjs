@@ -90,12 +90,14 @@ export function createNotesService(verifierFactory = createLoginVerifier, resour
     if (request.method === 'GET') {
       try {
         const url = new URL(`/rest/v1/${table}`, process.env.SUPABASE_URL);
-        url.searchParams.set('select', 'note_id,title,content');
+        url.searchParams.set('select', announcement ? 'note_id,title,content' : 'note_id,owner_id,title,content');
         if (!announcement) url.searchParams.set('owner_id', `eq.${identity.userId}`);
         url.searchParams.set('order', 'id.asc');
         const rows = await (await requestDatabase(`${url.pathname}${url.search}`)).json();
         if (!Array.isArray(rows)) throw new Error('invalid_database_response');
-        return write(response, 200, rows.map(toNote));
+        // Enforce the verified owner again before returning any note, even if
+        // the upstream database response contains rows outside the query filter.
+        return write(response, 200, (announcement ? rows : rows.filter(row => row?.owner_id === identity.userId)).map(toNote));
       } catch {
         return write(response, 502, { error: 'NOTES_UNAVAILABLE' });
       }
@@ -130,11 +132,11 @@ export function createNotesService(verifierFactory = createLoginVerifier, resour
     // Every item operation binds the record to the verified identity, never to
     // a user ID supplied through the URL or request body.
     const ownerFilter = announcement ? '' : `&owner_id=eq.${encodeURIComponent(identity.userId)}`;
-    const path = `/rest/v1/${table}?note_id=eq.${encodeURIComponent(id)}${ownerFilter}&select=note_id,title,content`;
+    const path = `/rest/v1/${table}?note_id=eq.${encodeURIComponent(id)}${ownerFilter}&select=${announcement ? 'note_id,title,content' : 'note_id,owner_id,title,content'}`;
     try {
       if (request.method === 'GET') {
         const rows = await (await requestDatabase(path)).json();
-        return Array.isArray(rows) && rows.length === 1
+        return Array.isArray(rows) && rows.length === 1 && (announcement || rows[0]?.owner_id === identity.userId)
           ? write(response, 200, toNote(rows[0])) : write(response, 404, { error: 'NOTE_NOT_FOUND' });
       }
       if (request.method === 'PUT') {

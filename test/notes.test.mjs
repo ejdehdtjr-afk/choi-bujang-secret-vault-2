@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createNotesService } from '../src/notes-api.mjs';
 
 const id = '00000000-0000-4000-8000-000000000010';
-const row = { note_id: id, title: 'test', content: 'fixture' };
+const row = { note_id: id, owner_id: '00000000-0000-4000-8000-000000000001', title: 'test', content: 'fixture' };
 
 function response() {
   return { headers: {}, setHeader(k, v) { this.headers[k] = v; },
@@ -78,6 +78,39 @@ test('another verified identity cannot read, update, or delete a foreign note', 
     }
     assert.equal(calls.length, 3);
     assert.ok(calls.every(url => url.includes(`owner_id=eq.${b}`)));
+  } finally {
+    globalThis.fetch = oldFetch;
+    for (const [key, value] of [['SUPABASE_URL', oldUrl], ['SUPABASE_SECRET_KEY', oldKey]]) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
+});
+
+test('a mixed database response cannot expose another owner through list or item GET', async () => {
+  const a = '00000000-0000-4000-8000-000000000001';
+  const b = '00000000-0000-4000-8000-000000000002';
+  const service = createNotesService(() => async () => ({ userId: a }));
+  const oldFetch = globalThis.fetch;
+  const oldUrl = process.env.SUPABASE_URL;
+  const oldKey = process.env.SUPABASE_SECRET_KEY;
+  try {
+    process.env.SUPABASE_URL = 'https://example.supabase.co';
+    process.env.SUPABASE_SECRET_KEY = 'test-only-placeholder';
+    globalThis.fetch = async () => ({ ok: true, json: async () => [
+      { ...row, owner_id: a },
+      { ...row, note_id: '00000000-0000-4000-8000-000000000011', owner_id: b },
+    ] });
+    const list = response();
+    await service.collection({ method: 'GET', headers: { authorization: 'Bearer A' } }, list);
+    assert.equal(list.code, 200);
+    assert.deepEqual(list.body, [{ id, title: 'test', body: 'fixture' }]);
+    globalThis.fetch = async () => ({ ok: true, json: async () => [
+      { ...row, owner_id: b },
+    ] });
+    const item = response();
+    await service.item({ method: 'GET', headers: { authorization: 'Bearer A' } }, item, id);
+    assert.equal(item.code, 404);
+    assert.deepEqual(item.body, { error: 'NOTE_NOT_FOUND' });
   } finally {
     globalThis.fetch = oldFetch;
     for (const [key, value] of [['SUPABASE_URL', oldUrl], ['SUPABASE_SECRET_KEY', oldKey]]) {
