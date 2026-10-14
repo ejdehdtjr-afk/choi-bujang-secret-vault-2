@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { createDeviceApprovalService } from '../src/device-approval.mjs';
 import { createNotesService } from '../src/notes-api.mjs';
 import { createRestoreHandler } from '../src/restore-note.mjs';
+import deviceHandler from '../api/device/[action].js';
 
 function response() {
   return { headers: {}, setHeader(name, value) { this.headers[name.toLowerCase()] = value; },
@@ -22,6 +23,18 @@ test('device status and request fail closed without the engine approval contract
     assert.equal(loggedIn.code, method === 'GET' ? 200 : 503);
     assert.notEqual(loggedIn.body.approved, true);
     assert.equal(loggedIn.headers['cache-control'], 'no-store');
+  }
+});
+
+test('one device function preserves both public paths and rejects unknown actions', async () => {
+  for (const [url, method, expected] of [
+    ['/api/device/status', 'GET', 401],
+    ['/api/device/request', 'POST', 401],
+    ['/api/device/other', 'GET', 404],
+  ]) {
+    const result = response();
+    await deviceHandler({ url, method, headers: {} }, result);
+    assert.equal(result.code, expected, url);
   }
 });
 
