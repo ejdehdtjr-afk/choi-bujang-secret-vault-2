@@ -220,6 +220,23 @@ CLEAR_NOT_BLOCKED의 원인이라는 주장은 확인되지 않았습니다. 현
 주입을 분류합니다. 명확한 반복 시도만 보조 ZTNA 거부 규칙으로 만들고, 애매한 입력은 Jev가
 응답하지 않으면 알림으로 남깁니다. 정상 웹 요청은 기록만 하며 기존 ZTNA 기본 규칙은 바꾸지 않습니다.
 
+## 보너스 XDR-03: 알려진 취약점 악용 탐지
+
+`xdr/known-cve/read-alerts.mjs`는 학습용 Wazuh 경보에서 시각·출발 주소·계정·수준·설명만
+읽고 비밀값처럼 보이는 문자열을 가립니다. `patterns.json`의 근거는
+[CVE-2021-44228](https://nvd.nist.gov/vuln/detail/CVE-2021-44228)과
+[MITRE ATT&CK T1190](https://attack.mitre.org/techniques/T1190/)입니다.
+`decide.mjs`는 다른 파일·네트워크 없이 경보마다 판단만 돌려줍니다. 완전한 원격 조회 형태는
+차단 후보, 불완전한 취약점 점검 흔적은 알림, 평범한 요청은 기록으로 분류합니다.
+`respond.mjs`가 차단 후보에 한해서 만료 시각·근거 경보 번호가 있는 보조 거부 규칙을 만들고,
+차단·알림 후보를 `xdr/alerts.log`에 한 줄씩 쌓습니다. 기존 `src/decider.mjs` 규칙은 그대로입니다.
+
+재실행: `npm run xdr:run -- known-cve`.
+이 명령은 `xdr/known-cve/result.json`을 갱신합니다. 현재 학습 경보 24건의 로컬 결과는
+block 8, alert 8, record 8이며 정상 이벤트 차단은 0건입니다.
+`node --test test/xdr-known-cve.test.mjs`로 단독 판단·안전한 읽기·거부 규칙 연결을 확인합니다.
+이 결과는 학습용 후보 출력이며 운영 ZTNA 적용이나 심판의 비공개 경보 판정은 아닙니다.
+
 ## 보너스 XDR-01: 무차별 로그인 탐지
 
 `xdr/brute-force/read-alerts.mjs`는 Wazuh 모양 학습 경보에서 시각·출발 주소·계정·규칙 수준·설명만 추립니다.

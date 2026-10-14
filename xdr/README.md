@@ -38,3 +38,7 @@ node scripts/xdr-run.mjs brute-force
 `npm run xdr:run -- brute-force` 도 같은 명령입니다. 실행기는 해당 경보마다 `decide` 를 부르고, 결과를 `xdr/<moduleKey>/result.json` 에 씁니다. 형식은 `aleph.xdr.result.v1` 이고, `decisions` 에는 경보 id·행동·확신도·이유가, `counts` 에는 `block`·`alert`·`record` 건수가 있습니다.
 
 반환 형식이 틀린 경보는 `record` 로 남고, 오류 한 줄이 출력됩니다. 실행기 자체는 네트워크를 쓰지 않습니다. 판정자는 격리된 환경에서 같은 명령을 다시 실행해 결과를 봅니다. 이미 커밋된 `result.json` 만으로 판정이 끝나지 않습니다.
+
+`known-cve`의 판단 파일은 패턴을 상수로 포함해 단독 실행됩니다. 응답 파일은 차단 후보만
+만료 시각과 근거 경보 번호가 있는 `ztna-deny-rules.json`으로 내보내고, 알림 후보는
+`xdr/alerts.log`에 남깁니다. 이는 학습용 후보 파일이며 기본 판정기 규칙을 바꾸지 않습니다.

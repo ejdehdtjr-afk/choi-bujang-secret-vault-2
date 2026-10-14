@@ -50,8 +50,9 @@ export async function runXdr({ root, moduleKey, writeError = (line) => console.e
     decisions.push({ alertId, action, confidence, reason });
     counts[action] += 1;
   }
-  if (moduleKey === 'brute-force' || moduleKey === 'web-injection') {
-    const integrationPath = join(root, 'xdr', moduleKey, 'apply-actions.mjs');
+  if (['brute-force', 'web-injection', 'known-cve'].includes(moduleKey)) {
+    const integrationPath = join(root, 'xdr', moduleKey,
+      moduleKey === 'known-cve' ? 'respond.mjs' : 'apply-actions.mjs');
     try {
       await access(integrationPath);
       const { applyActions } = await import(pathToFileURL(integrationPath).href);

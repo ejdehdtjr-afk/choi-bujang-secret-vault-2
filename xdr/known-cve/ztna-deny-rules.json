@@ -1,0 +1,69 @@
+{
+  "schema": "aleph.xdr.ztna-rules.v1",
+  "rules": [
+    {
+      "id": "known-cve-kc-01",
+      "action": "deny",
+      "sourceIp": "203.0.113.10",
+      "expiresAt": "2026-10-14T01:06:15.951Z",
+      "evidenceAlertId": "kc-01",
+      "reason": "log4shell_remote_lookup"
+    },
+    {
+      "id": "known-cve-kc-02",
+      "action": "deny",
+      "sourceIp": "203.0.113.10",
+      "expiresAt": "2026-10-14T01:06:15.951Z",
+      "evidenceAlertId": "kc-02",
+      "reason": "log4shell_remote_lookup"
+    },
+    {
+      "id": "known-cve-kc-03",
+      "action": "deny",
+      "sourceIp": "198.51.100.16",
+      "expiresAt": "2026-10-14T01:06:15.951Z",
+      "evidenceAlertId": "kc-03",
+      "reason": "log4shell_remote_lookup"
+    },
+    {
+      "id": "known-cve-kc-04",
+      "action": "deny",
+      "sourceIp": "192.0.2.16",
+      "expiresAt": "2026-10-14T01:06:15.951Z",
+      "evidenceAlertId": "kc-04",
+      "reason": "log4shell_remote_lookup"
+    },
+    {
+      "id": "known-cve-kc-05",
+      "action": "deny",
+      "sourceIp": "203.0.113.24",
+      "expiresAt": "2026-10-14T01:06:15.951Z",
+      "evidenceAlertId": "kc-05",
+      "reason": "log4shell_remote_lookup"
+    },
+    {
+      "id": "known-cve-kc-06",
+      "action": "deny",
+      "sourceIp": "198.51.100.24",
+      "expiresAt": "2026-10-14T01:06:15.951Z",
+      "evidenceAlertId": "kc-06",
+      "reason": "log4shell_remote_lookup"
+    },
+    {
+      "id": "known-cve-kc-07",
+      "action": "deny",
+      "sourceIp": "192.0.2.24",
+      "expiresAt": "2026-10-14T01:06:15.951Z",
+      "evidenceAlertId": "kc-07",
+      "reason": "log4shell_remote_lookup"
+    },
+    {
+      "id": "known-cve-kc-08",
+      "action": "deny",
+      "sourceIp": "203.0.113.31",
+      "expiresAt": "2026-10-14T01:06:15.951Z",
+      "evidenceAlertId": "kc-08",
+      "reason": "log4shell_remote_lookup"
+    }
+  ]
+}
