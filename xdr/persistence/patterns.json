@@ -1,0 +1,20 @@
+{
+  "mitreAttack": ["T1543", "T1053", "T1547.001"],
+  "patterns": [
+    {
+      "name": "untrusted_service_registration",
+      "conditions": "서명 없는 새·변경 서비스 또는 평소 목록에 없는 서비스가 등록됨",
+      "evidence": "MITRE ATT&CK T1543: 새 서비스의 생성이나 기존 서비스 실행 파일 변경은 지속 실행 경로가 될 수 있습니다."
+    },
+    {
+      "name": "unfamiliar_scheduled_task",
+      "conditions": "처음 보거나 임의 이름의 예약 작업이 임시 폴더 실행 파일을 지정함",
+      "evidence": "MITRE ATT&CK T1053: 예약 작업은 코드를 정해진 시각이나 반복 간격에 다시 실행할 수 있습니다."
+    },
+    {
+      "name": "unlisted_startup_change",
+      "conditions": "평소 목록에 없는 시작 프로그램이 추가되거나 시작 항목과 예약 작업이 같은 임시 파일을 가리킴",
+      "evidence": "MITRE ATT&CK T1547.001·T1053: 시작 폴더의 자동 실행과 예약 작업은 재실행 경로가 될 수 있습니다."
+    }
+  ]
+}

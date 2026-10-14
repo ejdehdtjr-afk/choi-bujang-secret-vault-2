@@ -237,6 +237,25 @@ block 8, alert 8, record 8이며 정상 이벤트 차단은 0건입니다.
 `node --test test/xdr-known-cve.test.mjs`로 단독 판단·안전한 읽기·거부 규칙 연결을 확인합니다.
 이 결과는 학습용 후보 출력이며 운영 ZTNA 적용이나 심판의 비공개 경보 판정은 아닙니다.
 
+## 보너스 XDR-04: 지속성 프로그램 탐지
+
+`xdr/persistence/read-alerts.mjs`는 학습용 Wazuh 경보에서 시각·출발 주소·계정·수준·설명만
+읽고 비밀값처럼 보이는 문자열을 가립니다. 패턴 근거는
+[MITRE ATT&CK T1543](https://attack.mitre.org/techniques/T1543/)의 서비스 생성·변경,
+[T1053](https://attack.mitre.org/techniques/T1053/)의 예약 작업,
+[T1547.001](https://attack.mitre.org/techniques/T1547/001/)의 시작 폴더 자동 실행입니다.
+`decide.mjs`는 외부 파일·네트워크 없이 판단만 하고, `respond.mjs`는 뚜렷한 차단 후보에
+한해서 출발 주소·만료 시각·근거 경보 번호가 붙은 보조 거부 규칙을 만듭니다.
+애매한 경보는 `xdr/alerts.log`에 알림으로 남기고 정상 이벤트는 기록만 합니다.
+기존 `src/decider.mjs`의 규칙은 바꾸지 않았습니다.
+
+재실행: `npm run xdr:run -- persistence`.
+이 명령은 `xdr/persistence/result.json`을 갱신합니다. 현재 학습 경보 24건의 로컬 결과는
+block 8, alert 8, record 8이며 정상 이벤트 차단은 0건입니다.
+`node --test test/xdr-persistence.test.mjs`는 판단 파일의 단독 실행, 안전한 읽기,
+만료되는 차단 후보와 알림 기록을 확인합니다. 이 파일은 운영 기기의 실제 격리 상태나
+심판의 비공개 경보 결과를 뜻하지 않습니다.
+
 ## 보너스 XDR-01: 무차별 로그인 탐지
 
 `xdr/brute-force/read-alerts.mjs`는 Wazuh 모양 학습 경보에서 시각·출발 주소·계정·규칙 수준·설명만 추립니다.

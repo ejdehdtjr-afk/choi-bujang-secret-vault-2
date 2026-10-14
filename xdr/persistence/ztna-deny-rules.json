@@ -1,0 +1,69 @@
+{
+  "schema": "aleph.xdr.ztna-rules.v1",
+  "rules": [
+    {
+      "id": "persistence-ps-01",
+      "action": "deny",
+      "sourceIp": "203.0.113.12",
+      "expiresAt": "2026-10-14T01:11:58.386Z",
+      "evidenceAlertId": "ps-01",
+      "reason": "untrusted_service_registration"
+    },
+    {
+      "id": "persistence-ps-02",
+      "action": "deny",
+      "sourceIp": "203.0.113.12",
+      "expiresAt": "2026-10-14T01:11:58.386Z",
+      "evidenceAlertId": "ps-02",
+      "reason": "unfamiliar_scheduled_task"
+    },
+    {
+      "id": "persistence-ps-03",
+      "action": "deny",
+      "sourceIp": "198.51.100.12",
+      "expiresAt": "2026-10-14T01:11:58.386Z",
+      "evidenceAlertId": "ps-03",
+      "reason": "unlisted_startup_change"
+    },
+    {
+      "id": "persistence-ps-04",
+      "action": "deny",
+      "sourceIp": "192.0.2.12",
+      "expiresAt": "2026-10-14T01:11:58.386Z",
+      "evidenceAlertId": "ps-04",
+      "reason": "untrusted_service_registration"
+    },
+    {
+      "id": "persistence-ps-05",
+      "action": "deny",
+      "sourceIp": "203.0.113.19",
+      "expiresAt": "2026-10-14T01:11:58.386Z",
+      "evidenceAlertId": "ps-05",
+      "reason": "unfamiliar_scheduled_task"
+    },
+    {
+      "id": "persistence-ps-06",
+      "action": "deny",
+      "sourceIp": "198.51.100.19",
+      "expiresAt": "2026-10-14T01:11:58.386Z",
+      "evidenceAlertId": "ps-06",
+      "reason": "untrusted_service_registration"
+    },
+    {
+      "id": "persistence-ps-07",
+      "action": "deny",
+      "sourceIp": "192.0.2.19",
+      "expiresAt": "2026-10-14T01:11:58.386Z",
+      "evidenceAlertId": "ps-07",
+      "reason": "unlisted_startup_change"
+    },
+    {
+      "id": "persistence-ps-08",
+      "action": "deny",
+      "sourceIp": "203.0.113.33",
+      "expiresAt": "2026-10-14T01:11:58.386Z",
+      "evidenceAlertId": "ps-08",
+      "reason": "untrusted_service_registration"
+    }
+  ]
+}
