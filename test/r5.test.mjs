@@ -42,26 +42,22 @@ test('step 5 deployment identity publishes only declared API routes', () => {
   assert.equal(identity.originalApiUrl, 'https://example.supabase.co/rest/v1/vault_notes');
 });
 
-test('first attack check reads public data.json without credentials', async () => {
+test('stage 12 reads public data.json without credentials and keeps unrun writes separate', async () => {
   const originalFetch = globalThis.fetch;
-  let requestUrl;
-  let options;
+  const calls = [];
   try {
     globalThis.fetch = async (url, init) => {
-      requestUrl = String(url);
-      options = init;
-      return new Response(JSON.stringify({ sampleMarker: 'SAMPLE_NOTE_1', notes: [{ title: '가상' }] }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
+      calls.push({ url: String(url), init });
+      const path = new URL(url).pathname;
+      if (path === '/data.json') return new Response('{"notes":[]}', { status: 200 });
+      if (path === '/api/checks') return new Response('{"ready":true}', { status: 200 });
+      return new Response('{"error":"LOGIN_REQUIRED"}', { status: 401 });
     };
-    const [result] = await runAttackChecks(config);
-    assert.equal(requestUrl, 'https://student-defense.vercel.app/data.json');
-    assert.equal(options.redirect, 'error');
-    assert.match(result.observed, /확인 표시가 보임/u);
-    globalThis.fetch = async () => new Response('<html>not the data</html>', { status: 200 });
-    const [failed] = await runAttackChecks(config);
-    assert.match(failed.observed, /보이지 않음/u);
+    const results = await runAttackChecks({ ...config, step: 12 });
+    assert.ok(calls.some(call => call.url === 'https://student-defense.vercel.app/data.json'));
+    assert.ok(calls.length <= 24 && calls.every(call => call.init.method === 'GET'));
+    assert.equal(results.find(item => item.attackId === 's01-static-notes').result, 'blocked');
+    assert.equal(results.find(item => item.attackId === 's10-restore-unauth').result, 'not_run');
   } finally {
     globalThis.fetch = originalFetch;
   }

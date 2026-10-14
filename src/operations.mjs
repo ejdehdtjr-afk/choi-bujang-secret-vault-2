@@ -1,0 +1,70 @@
+import { RULE_IDS } from './decider.mjs';
+import { observeAll, observeScreens } from './attack-check.mjs';
+import { detectionSummary } from './rule-check.mjs';
+import { readFileSync } from 'node:fs';
+import { comparePolicy } from '../scripts/restore-test-policy.mjs';
+import { SOURCES } from './sources.mjs';
+import config from '../aleph.config.json' with { type: 'json' };
+
+// 작전실 화면이 읽는 실제 관측. 이 배포에 지금 요청을 보내 얻은 응답 상태·요청 ID·확인 시각만 담고, 화면의 문구는 통과 근거가 아니다.
+// 메모 제목·본문·토큰·실명·기기 키는 읽지도 담지도 않는다. 확인하지 못한 것은 not_run·null 로 남긴다.
+const MIN_INTERVAL_MS = 15000;
+let last = null;
+let running = null;
+
+const count = (rows, result) => rows.filter((row) => row.result === result).length;
+
+async function recoverySummary() {
+  try {
+    const backup = JSON.parse(readFileSync(new URL('../backups/safe-policy.json', import.meta.url), 'utf8'));
+    const current = JSON.parse(readFileSync(new URL('../policy/test-policy.json', import.meta.url), 'utf8'));
+    const plan = comparePolicy(backup, current);
+    return { policyCopy: { state: 'metadata_checked', verified: false,
+      restoreVersion: plan.targetRevision, currentVersion: current.policyRevision,
+      changes: plan.changed.length, source: 'student_test_policy',
+      note: '서버에서 사본 메타데이터만 대조했습니다. 원본 커밋 재검증과 운영 정책 복구는 미실행입니다.' } };
+  } catch (error) {
+    return { policyCopy: { state: 'not_run', verified: false, error: 'policy_metadata_unavailable', source: 'student_test_policy' } };
+  }
+}
+
+async function observe() {
+  const checkedAt = new Date().toISOString();
+  // 묶음(npm run bundle)과 같은 함수·같은 점검 목록으로 관측해서 수치가 어긋나지 않게 한다. 화면·정책 확인은 점검 수치에 넣지 않고 따로 둔다.
+  const rows = await observeAll(config.publicAppUrl);
+  const screens = await observeScreens(config.publicAppUrl);
+  const recovery = await recoverySummary();
+  return {
+    schema: 'aleph.operations.v1',
+    checkedAt,
+    commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ?? null,
+    step: config.step,
+    // 운영 측 표본의 /api/checks 와 같은 최상위 수치: total·blocked·notRun·failed(뚫림). 같은 이름의 다른 수는 응답 어디에도 두지 않는다.
+    total: rows.length, blocked: count(rows, 'blocked'), notRun: count(rows, 'not_run'), failed: count(rows, 'breached'),
+    // 제출 묶음의 attackAttempts 와 같은 다섯 값. 위 수치는 이 목록만 센 것이다.
+    sources: SOURCES,
+    attempts: rows.map(({ attackId, stage, expected, observed, result }) => ({ attackId, stage, expected, observed, result })),
+    rows,
+    screens,
+    judgeRules: {
+      ruleIds: [...RULE_IDS],
+      note: '서버가 고정된 가상 입력으로 학생 판정기·탐지 규칙을 실행한 결과다. 실제 사용자·기기 상태가 아니며, 제공 엔진(ALEPH SDP 엔진)이 이 판정을 실제 요청에서 집행했는지는 미실행이다.',
+      cases: rows.filter((row) => row.kind === 'rule').map(({ attackId, result, observed, requests }) => ({ attackId, result, observed, requestId: requests[0]?.requestId ?? null })),
+    },
+    detection: detectionSummary(),
+    revocation: { connected: false, state: 'not_connected', note: '회수는 반 엔진이 집행하며 이 저장소에는 회수 연결이 없다. 수치는 null 이다.', revoked: null, elapsedSeconds: null },
+    recovery: { ...recovery, memoBackups: { state: 'not_run', note: '메모 사본 개수는 로그인·기기 승인이 필요한 정보라 읽지 않았다.' } },
+  };
+}
+
+// 짧은 간격 안의 반복 호출은 직전 관측을 그대로 돌려준다(자기 확인 시각 포함). 관측이 실패하면 이전 성공 값을 쓰지 않고 실패를 알린다.
+export async function operationsStatus({ now = Date.now() } = {}) {
+  if (last && now - last.at < MIN_INTERVAL_MS) return { ...last.value, cached: true };
+  running ??= observe().then((value) => { last = { at: Date.now(), value }; return value; }).finally(() => { running = null; });
+  try {
+    return { ...(await running), cached: false };
+  } catch {
+    last = null;
+    return { schema: 'aleph.operations.v1', error: 'observation_failed', checkedAt: new Date().toISOString(), rows: [], total: null, blocked: null, notRun: null, failed: null, cached: false };
+  }
+}
