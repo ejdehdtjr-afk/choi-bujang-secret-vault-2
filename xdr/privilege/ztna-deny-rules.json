@@ -1,0 +1,86 @@
+{
+  "schema": "aleph.xdr.ztna-rules.v1",
+  "rules": [
+    {
+      "id": "privilege-pv-01",
+      "action": "deny",
+      "account": "user01",
+      "sourceIp": "203.0.113.11",
+      "expiresAt": "2026-10-14T01:28:20.675Z",
+      "evidenceAlertId": "pv-01",
+      "reason": "admin_group_escalation"
+    },
+    {
+      "id": "privilege-pv-02",
+      "action": "deny",
+      "account": "user01",
+      "sourceIp": "203.0.113.11",
+      "expiresAt": "2026-10-14T01:28:20.675Z",
+      "evidenceAlertId": "pv-02",
+      "reason": "unusual_admin_command"
+    },
+    {
+      "id": "privilege-pv-03",
+      "action": "deny",
+      "account": "user02",
+      "sourceIp": "198.51.100.11",
+      "expiresAt": "2026-10-14T01:28:20.675Z",
+      "evidenceAlertId": "pv-03",
+      "reason": "unusual_admin_command"
+    },
+    {
+      "id": "privilege-pv-04",
+      "action": "deny",
+      "account": "user03",
+      "sourceIp": "192.0.2.11",
+      "expiresAt": "2026-10-14T01:28:20.675Z",
+      "evidenceAlertId": "pv-04",
+      "reason": "admin_group_escalation"
+    },
+    {
+      "id": "privilege-pv-05",
+      "action": "deny",
+      "account": "user04",
+      "sourceIp": "203.0.113.17",
+      "expiresAt": "2026-10-14T01:28:20.675Z",
+      "evidenceAlertId": "pv-05",
+      "reason": "admin_group_escalation"
+    },
+    {
+      "id": "privilege-pv-06",
+      "action": "deny",
+      "account": "user05",
+      "sourceIp": "198.51.100.17",
+      "expiresAt": "2026-10-14T01:28:20.675Z",
+      "evidenceAlertId": "pv-06",
+      "reason": "unexpected_admin_session"
+    },
+    {
+      "id": "privilege-pv-07",
+      "action": "deny",
+      "account": "user06",
+      "sourceIp": "192.0.2.17",
+      "expiresAt": "2026-10-14T01:28:20.675Z",
+      "evidenceAlertId": "pv-07",
+      "reason": "admin_group_escalation"
+    },
+    {
+      "id": "privilege-pv-08",
+      "action": "deny",
+      "account": "user07",
+      "sourceIp": "203.0.113.27",
+      "expiresAt": "2026-10-14T01:28:20.675Z",
+      "evidenceAlertId": "pv-08",
+      "reason": "unusual_admin_command"
+    },
+    {
+      "id": "privilege-pv-09",
+      "action": "deny",
+      "account": "user08",
+      "sourceIp": "198.51.100.27",
+      "expiresAt": "2026-10-14T01:28:20.675Z",
+      "evidenceAlertId": "pv-09",
+      "reason": "admin_group_escalation"
+    }
+  ]
+}

@@ -256,6 +256,23 @@ block 8, alert 8, record 8이며 정상 이벤트 차단은 0건입니다.
 만료되는 차단 후보와 알림 기록을 확인합니다. 이 파일은 운영 기기의 실제 격리 상태나
 심판의 비공개 경보 결과를 뜻하지 않습니다.
 
+## 보너스 XDR-05: 권한 가로채기 탐지
+
+`xdr/privilege/read-alerts.mjs`는 학습용 Wazuh 경보에서 시각·출발 주소·계정·수준·설명만
+읽고 비밀값처럼 보이는 문자열을 가립니다. `patterns.json`은
+[MITRE ATT&CK T1078](https://attack.mitre.org/techniques/T1078/)의 정상 계정 악용과
+[T1068](https://attack.mitre.org/techniques/T1068/)의 취약점 기반 권한 상승을 참고합니다.
+경보에 취약점 악용 수단이 없으면 T1068 발생을 확정하지 않습니다.
+`decide.mjs`는 관리자 그룹 추가, 낯선 관리자 명령, 갑자기 높아진 세션을 독립적으로 판단합니다.
+`respond.mjs`는 명확한 경보에만 해당 계정·출발 주소 범위의 만료되는 보조 거부 규칙을 만들고,
+애매한 경보는 `xdr/alerts.log`에 한 줄씩 남깁니다. 기존 판정기 규칙은 유지합니다.
+
+재실행: `npm run xdr:run -- privilege`.
+이 명령은 `xdr/privilege/result.json`을 갱신합니다. 현재 학습 경보 26건의 로컬 결과는
+block 9, alert 8, record 9이며 정상 이벤트 차단은 0건입니다.
+`node --test test/xdr-privilege.test.mjs`로 단독 판단·안전한 읽기·대상 범위를 확인합니다.
+보조 규칙 파일은 실제 세션 회수나 심판의 비공개 경보 판정 결과가 아닙니다.
+
 ## 보너스 XDR-01: 무차별 로그인 탐지
 
 `xdr/brute-force/read-alerts.mjs`는 Wazuh 모양 학습 경보에서 시각·출발 주소·계정·규칙 수준·설명만 추립니다.

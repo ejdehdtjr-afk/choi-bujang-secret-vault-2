@@ -1,0 +1,25 @@
+{
+  "mitreAttack": ["T1068", "T1078"],
+  "patterns": [
+    {
+      "name": "admin_group_escalation",
+      "conditions": "평범한 계정의 관리자 그룹 추가·재추가가 뚜렷하게 확인됨",
+      "evidence": "MITRE ATT&CK T1078: 기존 계정의 권한 변경은 유효한 계정이 높은 권한으로 악용되는지 확인할 신호입니다."
+    },
+    {
+      "name": "unusual_admin_command",
+      "conditions": "막 관리자가 된 계정, 낯선 주소·업무 외 시각, 또는 다른 계정 권한으로 관리자 명령을 실행함",
+      "evidence": "MITRE ATT&CK T1078·T1068: 새 권한이나 다른 신원에서의 관리자 실행은 권한 상승 정황이며, 경보만으로 취약점 악용을 확정하지는 않습니다."
+    },
+    {
+      "name": "unexpected_admin_session",
+      "conditions": "기존 세션이 관리자 권한으로 바뀌고 요청 주소도 처음 보는 주소임",
+      "evidence": "MITRE ATT&CK T1078: 평소 계정 세션의 갑작스러운 관리자 권한 사용은 계정 도용 여부를 조사할 근거입니다."
+    },
+    {
+      "name": "privilege_change_review",
+      "conditions": "단발성 권한·그룹 변화 흔적은 있으나 관리자 권한 획득과 사용이 명확하지 않음",
+      "evidence": "MITRE ATT&CK T1068·T1078: 단일 약한 신호만으로 악용을 단정할 수 없으므로 추가 검토가 필요합니다."
+    }
+  ]
+}
