@@ -1,0 +1,85 @@
+{
+  "schema": "aleph.xdr.ztna-rules.v1",
+  "rules": [
+    {
+      "id": "exfiltration-ex-01",
+      "action": "deny",
+      "destinationIp": "203.0.113.50",
+      "expiresAt": "2026-10-14T01:35:10.402Z",
+      "evidenceAlertId": "ex-01",
+      "reason": "large_unfamiliar_destination"
+    },
+    {
+      "id": "exfiltration-ex-02",
+      "action": "deny",
+      "destinationIp": "198.51.100.40",
+      "expiresAt": "2026-10-14T01:35:10.402Z",
+      "evidenceAlertId": "ex-02",
+      "reason": "large_unfamiliar_destination"
+    },
+    {
+      "id": "exfiltration-ex-03",
+      "action": "deny",
+      "destinationIp": "203.0.113.50",
+      "expiresAt": "2026-10-14T01:35:10.402Z",
+      "evidenceAlertId": "ex-03",
+      "reason": "repeated_large_transfer"
+    },
+    {
+      "id": "exfiltration-ex-04",
+      "action": "deny",
+      "destinationIp": "198.51.100.40",
+      "expiresAt": "2026-10-14T01:35:10.402Z",
+      "evidenceAlertId": "ex-04",
+      "reason": "unusual_channel_bulk_copy"
+    },
+    {
+      "id": "exfiltration-ex-05",
+      "action": "deny",
+      "destinationIp": "203.0.113.55",
+      "expiresAt": "2026-10-14T01:35:10.402Z",
+      "evidenceAlertId": "ex-05",
+      "reason": "large_unfamiliar_destination"
+    },
+    {
+      "id": "exfiltration-ex-06",
+      "action": "deny",
+      "destinationIp": "192.0.2.90",
+      "expiresAt": "2026-10-14T01:35:10.402Z",
+      "evidenceAlertId": "ex-06",
+      "reason": "repeated_large_transfer"
+    },
+    {
+      "id": "exfiltration-ex-07",
+      "action": "deny",
+      "destinationIp": "198.51.100.45",
+      "expiresAt": "2026-10-14T01:35:10.402Z",
+      "evidenceAlertId": "ex-07",
+      "reason": "large_unfamiliar_destination"
+    },
+    {
+      "id": "exfiltration-ex-08",
+      "action": "deny",
+      "destinationIp": "203.0.113.60",
+      "expiresAt": "2026-10-14T01:35:10.402Z",
+      "evidenceAlertId": "ex-08",
+      "reason": "unusual_channel_bulk_copy"
+    },
+    {
+      "id": "exfiltration-ex-09",
+      "action": "deny",
+      "destinationIp": "203.0.113.61",
+      "expiresAt": "2026-10-14T01:35:10.402Z",
+      "evidenceAlertId": "ex-09",
+      "reason": "large_unfamiliar_destination"
+    },
+    {
+      "id": "exfiltration-ex-10",
+      "action": "deny",
+      "destinationIp": "198.51.100.46",
+      "expiresAt": "2026-10-14T01:35:10.402Z",
+      "evidenceAlertId": "ex-10",
+      "reason": "large_unfamiliar_destination"
+    }
+  ]
+}

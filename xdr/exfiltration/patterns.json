@@ -1,0 +1,25 @@
+{
+  "mitreAttack": ["T1041", "T1048"],
+  "patterns": [
+    {
+      "name": "large_unfamiliar_destination",
+      "conditions": "처음 보는 외부 목적지로 50 MB 이상 자료·압축 파일이 실제 전송됨",
+      "evidence": "MITRE ATT&CK T1048: 낯선 목적지로 큰 자료를 보내는 것은 다른 전송 통로를 통한 반출 신호입니다."
+    },
+    {
+      "name": "repeated_large_transfer",
+      "conditions": "같은 목적지로 50 MB 이상 전송이 여러 차례 반복되거나 업무 시간 밖 대량 전송이 반복됨",
+      "evidence": "MITRE ATT&CK T1041·T1048: 반복되는 큰 외부 전송은 자료 반출 통로의 악용 가능성을 높입니다."
+    },
+    {
+      "name": "unusual_channel_bulk_copy",
+      "conditions": "평소 쓰지 않던 포트 또는 외부 주소로 자료실 전체에 가까운 대량 복사가 발생함",
+      "evidence": "MITRE ATT&CK T1041·T1048: 통상 통로 밖으로 큰 자료를 복사하는 행위는 명령 통로나 다른 프로토콜을 점검할 근거입니다."
+    },
+    {
+      "name": "transfer_review",
+      "conditions": "작거나 단발성인 낯선 전송, 압축 파일 생성, 또는 전송 실패처럼 추가 확인이 필요한 흔적",
+      "evidence": "MITRE ATT&CK T1041·T1048: 목적지·전송량·완료 여부가 불명확한 한 건만으로 반출을 확정할 수 없습니다."
+    }
+  ]
+}

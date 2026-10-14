@@ -273,6 +273,23 @@ block 9, alert 8, record 9이며 정상 이벤트 차단은 0건입니다.
 `node --test test/xdr-privilege.test.mjs`로 단독 판단·안전한 읽기·대상 범위를 확인합니다.
 보조 규칙 파일은 실제 세션 회수나 심판의 비공개 경보 판정 결과가 아닙니다.
 
+## 보너스 XDR-06: 자료 반출 탐지
+
+`xdr/exfiltration/read-alerts.mjs`는 학습용 Wazuh 경보의 시각·출발 주소·계정·수준·설명만
+읽고 비밀값처럼 보이는 문자열을 가립니다. 패턴 근거는
+[MITRE ATT&CK T1041](https://attack.mitre.org/techniques/T1041/)의 명령 통로를 통한 반출과
+[T1048](https://attack.mitre.org/techniques/T1048/)의 다른 프로토콜을 통한 반출입니다.
+`decide.mjs`는 외부 파일·네트워크 없이 실제 전송량, 목적지, 반복·낯선 통로의 복합 신호를
+판단합니다. `respond.mjs`는 명확한 경보의 목적지에만 만료 시각·근거 경보 번호를 붙인
+보조 거부 규칙을 만들고, 애매한 경보는 `xdr/alerts.log`에 알림으로 남깁니다.
+정상 작은 전송은 기록만 하며 기존 `src/decider.mjs` 규칙은 유지합니다.
+
+재실행: `npm run xdr:run -- exfiltration`.
+이 명령은 `xdr/exfiltration/result.json`을 갱신합니다. 현재 학습 경보 30건의 로컬 결과는
+block 10, alert 10, record 10이며 정상 이벤트 차단은 0건입니다.
+`node --test test/xdr-exfiltration.test.mjs`로 단독 판단·안전한 읽기·목적지 범위를 확인합니다.
+보조 규칙 파일은 실제 네트워크 차단이나 심판의 비공개 경보 결과가 아닙니다.
+
 ## 보너스 XDR-01: 무차별 로그인 탐지
 
 `xdr/brute-force/read-alerts.mjs`는 Wazuh 모양 학습 경보에서 시각·출발 주소·계정·규칙 수준·설명만 추립니다.
