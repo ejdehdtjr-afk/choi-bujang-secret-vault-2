@@ -23,9 +23,9 @@ export function createStudentView() {
       };
       const value = (text) => typeof text === 'string' && text ? text : '확인 불가';
       const deviceText = (device) =>
-        `${value(device?.label)} · ID: ${value(device?.id)} · 상태: ${deviceStates[device?.status] ?? '확인 불가'}`;
+        `${value(device?.label)} · ID: ${value(device?.id)} · 상태: ${deviceStates[device?.status] ?? '확인 불가'}(${value(device?.status)})`;
       const sessionText = (session) =>
-        `ID: ${value(session?.id)} · 상태: ${sessionStates[session?.status] ?? '확인 불가'}`;
+        `ID: ${value(session?.id)} · 상태: ${sessionStates[session?.status] ?? '확인 불가'}(${value(session?.status)})`;
 
       for (const [title, resource, showData] of [
         ['현재 계정·기기·세션', me, (section, data) => {
