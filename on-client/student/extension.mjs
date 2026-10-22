@@ -1,6 +1,45 @@
 // 이 파일은 학생이 같은 프로젝트에서 이어서 구현합니다.
 // 제공 UI를 받은 것만으로 단계 완료를 인정하지 않습니다.
 export function createStudentView() {
+  // 제공 UI가 정규화한 오류만 표시한다. 알 수 없는 원문·설정은 노출하지 않는다.
+  const describeAiError = (error) => {
+    const account = '담당자에게 계정 연결과 앱 권한의 준비 상태를 확인하세요.';
+    const retry = '잠시 후 사용자가 버튼을 직접 눌러 다시 점검하세요.';
+    const cancelled = '요청이 취소됐습니다. 이전 응답은 현재 결과가 아닙니다.';
+    const models = '담당자에게 현재 앱 권한의 모델 허용 설정을 확인하세요.';
+    const guides = {
+      ON_AI_PROVISIONING_PENDING: `권한 준비 중입니다. 학생 코드 오류로 단정하지 않습니다. ${account}`,
+      AI_REQUEST_UNVERIFIED: `AI 연결 또는 응답 확인 불가입니다. ${account}`,
+      WB_CLCO_AUTH_REQUIRED: '인증 확인이 필요합니다. 계정 연결을 다시 확인하고 담당자에게 문의하세요.',
+      WB_CLCO_ACCESS_BLOCKED: 'AI 접근이 제한됐습니다. 담당자에게 앱 이용 권한과 운영 상태를 확인하세요.',
+      ON_AI_AUTHORIZATION_CHANGED: `점검 도중 앱 권한이 변경됐습니다. ${account}`,
+      WB_CLCO_COHORT_BUDGET_EXHAUSTED: '반의 AI 사용량이 소진됐습니다. 담당자에게 확인하세요.',
+      WB_CLCO_LIMIT_REACHED: 'AI 이용 한도에 도달했습니다. 담당자에게 확인하세요.',
+      WB_CLCO_SESSION_CLOSED: '현재 AI 이용 시간이 아닙니다. 이용 시간을 확인하세요.',
+      WB_CLCO_RATE_LIMITED: `AI 요청이 제한됐습니다. ${retry}`,
+      WB_CLCO_TIMEOUT: `AI 응답 시간 초과입니다. ${retry}`,
+      REQUEST_TIMEOUT: `요청 시간 초과입니다. ${retry}`,
+      ENGINE_TIMEOUT: `서버 확인 시간 초과입니다. ${retry}`,
+      TIMEOUT: `응답 시간 초과입니다. ${retry}`,
+      WB_CLCO_NETWORK_ERROR: `AI 서버와 네트워크 연결을 확인할 수 없습니다. ${retry}`,
+      WB_CLCO_CANCELLED: cancelled,
+      CANCELLED: cancelled,
+      REQUEST_CANCELLED: cancelled,
+      MODEL_NOT_CONFIGURED: `사용할 모델이 설정되지 않았습니다. ${models}`,
+      ON_AI_MODEL_LIST_EMPTY: `현재 권한으로 사용할 모델이 없습니다. ${models}`,
+      SUBJECT_SCOPE_UNVERIFIED: `현재 계정과 사건의 연결을 확인할 수 없습니다. ${account}`,
+      ON_AI_INVALID_INPUT: '설명에 필요한 사건 근거와 규칙을 확인할 수 없습니다. 기존 기록을 확인하세요.',
+      ON_AI_INVALID_OUTPUT: '사건 설명의 응답 형식이나 근거를 확인할 수 없습니다. 기존 기록을 확인하세요.',
+    };
+    const code = typeof error?.code === 'string' && Object.hasOwn(guides, error.code)
+      ? error.code : 'AI_REQUEST_UNVERIFIED';
+    const message = error?.message;
+    // 알려진 코드라도 비밀값 형태·원문 스택이 섞이면 고정된 안전 안내로 대체한다.
+    const sensitive = /Bearer\s+\S+|\b(?:sk-|gh[pousr]_)[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|(?:token|password|api[_ -]?key|secret)\s*[:=]\s*\S+|-----BEGIN|https?:\/\/|\n\s*at\s/i;
+    const safeMessage = code === error?.code && typeof message === 'string' && message.length > 0
+      && message.length <= 1000 && !sensitive.test(message) ? message : '오류 원문을 표시하지 않습니다. 아래 안내를 확인하세요.';
+    return { code, message: safeMessage, guide: guides[code] };
+  };
   return {
     renderIdentity({ me, devices, sessions }) {
       // 호출마다 새 요소를 반환한다. 제공 UI가 이전 학생 영역을 교체한다.
@@ -329,8 +368,62 @@ export function createStudentView() {
       return root;
     },
     renderVulnerabilities() { return '학생 구현 대기: 정확한 설치 버전·OSV 출처·조회 시각·부분 결과·조회 실패를 구분하세요.'; },
-    renderAiConnection() { return '학생 구현 대기: 모델 응답 점검과 실제 사건 설명을 구분하고 AI 오류·취소·수동 복구를 안내하세요.'; },
-    renderExplanation() { return '학생 구현 대기: 선택한 사건의 근거·규칙·현재 상태와 AI 설명을 연결하세요. 제안은 자동 실행하지 않습니다.'; },
+    renderAiConnection({ status, mode, data, error, checkedAt }) {
+      const root = document.createElement('div');
+      const line = (text) => {
+        const paragraph = document.createElement('p');
+        paragraph.textContent = text;
+        root.appendChild(paragraph);
+      };
+      if (mode === 'demo') line('예제 자료(demo) · 실제 연결 확인이 아닙니다.');
+      else if (mode === 'disconnected') line('연결 없음(disconnected)');
+      else if (mode !== 'connected') line('연결 상태 확인 불가(unknown)');
+
+      if (status === 'idle') line('AI 연결 점검 전');
+      else if (status === 'loading') line('AI 연결 점검 중');
+      else if (status === 'error') {
+        const failure = describeAiError(error);
+        line(`AI 연결 점검 실패: ${failure.code} · ${failure.message}`);
+        line(failure.guide);
+      } else if (status === 'ok') {
+        if (data?.transportChecked === true && ['test', 'verified'].includes(data.audienceAuthorization)) {
+          line(data.audienceAuthorization === 'test' ? '시험 연결 점검(test)' : '앱 권한 확인 후 점검(verified)');
+          line(`응답 모델 수: ${Number.isInteger(data.modelCount) && data.modelCount >= 0 ? data.modelCount : '확인 불가'}`);
+          line(`점검 시각: ${typeof checkedAt === 'string' && checkedAt ? checkedAt : '확인 불가'}`);
+        } else line('AI 연결 점검 결과 확인 불가');
+        line('연결 점검과 사건 설명은 별개입니다. 사건 설명은 아직 실행하지 않았습니다.');
+        line('사건 설명은 보안 기록에서 별도로 요청하고 결과를 확인하세요.');
+      } else line('AI 연결 점검 상태 확인 불가');
+
+      line('자동으로 다시 점검하지 않습니다. 다시 점검은 제공 화면의 AI 연결 점검 버튼을 사용자가 직접 누르세요.');
+      return root;
+    },
+    renderExplanation({ event, explanation, checkedAt }) {
+      const root = document.createElement('div');
+      const line = (text) => {
+        const paragraph = document.createElement('p');
+        paragraph.textContent = text;
+        root.appendChild(paragraph);
+      };
+      if (explanation?.mode === 'demo') line('예제 자료(demo) · 실제 사건 설명의 성공 확인이 아닙니다.');
+      if (explanation?.status === 'ok' && typeof event?.id === 'string' && event.id
+        && typeof explanation.data?.summary === 'string' && explanation.data.summary) {
+        root.setAttribute('data-student-explanation-event', event.id);
+        line(`사건 ID: ${event.id}`);
+        line(`사건 설명: ${explanation.data.summary}`);
+        line(`확인 시각: ${typeof checkedAt === 'string' && checkedAt ? checkedAt : '확인 불가'}`);
+        line('AI 설명과 제안은 보안 조치를 실행하지 않습니다.');
+      } else if (explanation?.status === 'error') {
+        const failure = describeAiError(explanation.error);
+        line(`사건 설명 실패: ${failure.code} · ${failure.message}`);
+        line(failure.guide);
+        line('보안 기록은 그대로 유지됩니다. 이전 설명은 현재 결과가 아닙니다.');
+        line('다시 요청하려면 사용자가 보안 기록의 AI 설명 요청 버튼을 직접 누르세요.');
+      } else if (explanation?.status === 'loading') line('사건 설명 요청 중입니다. 보안 기록은 그대로 유지됩니다.');
+      else if (!explanation || explanation.status === 'idle') line('사건 설명 요청 전입니다. 보안 기록에서 사건을 선택해 AI 설명을 직접 요청하세요.');
+      else line('사건 설명 확인 불가입니다. 보안 기록은 그대로 유지됩니다.');
+      return root;
+    },
     renderAction() { return '학생 구현 대기: 현재 사건·조치·실제 대상·사람 확인·ACK와 원천 효과·unknown을 구분하세요.'; },
   };
 }
