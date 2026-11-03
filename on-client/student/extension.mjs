@@ -511,6 +511,96 @@ export function createStudentView() {
       line('실행 상태: 미실행(executed:false). 설명·제안만으로 보안 조치가 실행되지는 않습니다.');
       return root;
     },
-    renderAction() { return '학생 구현 대기: 현재 사건·조치·실제 대상·사람 확인·ACK와 원천 효과·unknown을 구분하세요.'; },
+    renderAction({ status, event, actionId, target, receipt, observation, message, confirmationExpiresAt, error }) {
+      // 표시 전용이다. 호출마다 현재 입력으로 새 요소를 반환한다.
+      const root = document.createElement('div');
+      const line = (text) => {
+        const paragraph = document.createElement('p');
+        paragraph.textContent = text;
+        root.appendChild(paragraph);
+      };
+      const scalar = (value) => typeof value === 'string' && value.length > 0
+        || typeof value === 'number' && Number.isFinite(value);
+      const field = (name, value) => { if (scalar(value)) line(`${name}: ${value}`); };
+      const labels = {
+        idle: '아직 미실행(idle)',
+        loading: '조치 준비 또는 연동 시스템 결과 조회 중(loading) · 현재 결과 확인 전',
+        prepared: '준비됨·미실행(prepared)',
+        executing: '서버에 전달 중(executing) · 결과가 아직 확인되지 않았습니다.',
+        pending: '서버 접수·처리 중(pending) · 접수 응답(ACK)은 효과 확인이 아닙니다.',
+        succeeded: '효과 확인(succeeded)',
+        denied: '연동 시스템 거절(denied)',
+        failed: '연동 시스템 실패(failed)',
+        unknown: '결과 불명(unknown) · 성공이나 효과 없음으로 판단하지 마세요.',
+        error: '요청이 처리되지 않았습니다(error)',
+        expired: '확인 기한 지남(expired) · 현재 사건으로 다시 준비하세요.',
+      };
+      const effectConfirmed = status === 'succeeded' && observation?.effectApplied === true;
+      const currentStatus = status === 'succeeded' && !effectConfirmed
+        ? 'unknown' : typeof status === 'string' && Object.hasOwn(labels, status) ? status : 'unknown';
+      line(labels[currentStatus]);
+
+      if (scalar(event?.id)) {
+        root.setAttribute('data-student-action-event', String(event.id));
+        field('사건 ID', event.id);
+      }
+      if (Array.isArray(event?.evidence)) {
+        for (const evidence of event.evidence) field('근거 ID', evidence?.id);
+      }
+      field('조치 ID', actionId);
+      field('실제 대상 ID', target?.id);
+      field('대상 세대(generation)', target?.generation);
+      if (scalar(receipt?.requestId)) {
+        root.setAttribute('data-student-action-request', String(receipt.requestId));
+        field('요청 ID(requestId)', receipt.requestId);
+      }
+      field('영수증 ID(receiptId)', receipt?.receiptId);
+      field('결과 버전(version)', receipt?.version);
+
+      if (currentStatus === 'prepared') {
+        field('사람 확인 기한(confirmationExpiresAt)', confirmationExpiresAt);
+        line('아직 실행되지 않았습니다. 제공 화면에서 사건·근거·실제 대상·조치·확인 기한을 읽고 사람이 별도로 확인해야 합니다.');
+      }
+      if (currentStatus === 'executing' || currentStatus === 'pending') {
+        line('요청 전달·접수와 실제 효과 관측은 다릅니다. 결과는 제공 화면에서 별도로 재조회해 확인하세요.');
+      }
+      if (effectConfirmed) {
+        field('관측 시각(observedAt)', observation.observedAt);
+        line('effectApplied: true');
+      }
+      if (currentStatus === 'unknown') {
+        line('효과가 없었다고도, 성공했다고도 단정할 수 없습니다. 재집행하지 말고 제공 화면의 결과 재조회 버튼으로 연동 시스템 결과만 다시 확인하세요.');
+      }
+
+      // 안전한 표시 필드만 읽고 응답 전체나 인증 티켓은 직렬화하지 않는다.
+      const sensitive = /Bearer\s+\S+|\b(?:sk-|gh[pousr]_)[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|(?:token|password|api[_ -]?key|secret)\s*[:=]\s*\S+|-----BEGIN|https?:\/\/|\n\s*at\s/i;
+      const safeMessage = (value) => typeof value === 'string' && value.length > 0
+        && value.length <= 1000 && !sensitive.test(value) ? value : null;
+      const notice = safeMessage(message);
+      if (notice) line(`안내: ${notice}`);
+      const errorCodes = [
+        'ACTION_UNSUPPORTED', 'ACTION_INPUT_INVALID', 'ACTION_DENIED', 'ACTION_CONFIRMATION_EXPIRED',
+        'ACTION_CONFIRMATION_INVALID', 'ACTION_SCOPE_CHANGED', 'ACTION_SCOPE_UNVERIFIED',
+        'SUBJECT_SCOPE_UNVERIFIED', 'ACTION_SNAPSHOT_CHANGED', 'ACTION_EVENT_UNAVAILABLE',
+        'ACTION_TIMEOUT', 'ACTION_STORE_FAILED', 'ACTION_RESULT_UNVERIFIED', 'ACTION_CANCELLED',
+      ];
+      if (error || currentStatus === 'error') {
+        const code = errorCodes.includes(error?.code) ? error.code : 'ACTION_RESULT_UNVERIFIED';
+        line(`오류 코드: ${code}`);
+        line(`오류 안내: ${safeMessage(error?.message) ?? '안전한 오류 안내를 확인할 수 없습니다. 담당자에게 확인하세요.'}`);
+      }
+      if ((currentStatus === 'denied' || currentStatus === 'failed') && !notice && !error) {
+        line('거절·실패 사유를 확인할 수 없습니다. 제공 화면에서 현재 결과를 확인하세요.');
+      }
+      if (typeof receipt?.replayed === 'boolean') {
+        line(`동일 요청 재전송 여부(replayed): ${receipt.replayed}`);
+        line('같은 요청의 재전송 응답은 새 집행이나 새 효과의 증거가 아닙니다. 자동 재집행하지 않습니다.');
+      }
+      if (receipt?.superseded === true) line('이전 조회는 최신 결과를 대신하지 않습니다(superseded:true).');
+      line('AI 제안만으로 실행되지 않습니다. 학생 화면은 상태만 표시하며 실제 조치 버튼은 제공 화면에 있습니다.');
+      line('조치 화면 취소는 이미 서버에 전달된 조치 효과를 되돌리지 않습니다.');
+      line('실제 학생 계정의 연동 시스템 집행·결과 확인은 기다림(UNV)입니다.');
+      return root;
+    },
   };
 }
