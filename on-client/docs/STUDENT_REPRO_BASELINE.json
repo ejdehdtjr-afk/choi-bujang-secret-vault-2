@@ -1,0 +1,205 @@
+{
+  "schema": "keshev.student-reproduction.v1",
+  "commit": "7ffa95627f8cb2253ca492a24a8ebdcddba00332",
+  "branch": "HEAD",
+  "repository": "https://github.com/ejdehdtjr-afk/choi-bujang-secret-vault-2",
+  "project": "C:\\Users\\USER\\Documents\\ChatGPT\\aleph\\stage22-repro-20261103",
+  "startedAt": "2026-11-03T03:37:09.254Z",
+  "gitStatusBefore": "",
+  "hashFormat": "sha256-utf8-LF",
+  "runnerSha256": "b0e1db1837dc7c424de99d2e977aee3e3c28230c24f2d601659377170413d081",
+  "runtime": {
+    "node": "v24.13.1",
+    "platform": "win32",
+    "arch": "x64",
+    "git": "git version 2.53.0.windows.1",
+    "powershell": "5.1.22621.4391",
+    "npm": "11.8.0"
+  },
+  "version": "검증 중",
+  "productionVerified": false,
+  "checks": [
+    {
+      "stage": "21",
+      "id": "new-checkout-runtime-and-syntax",
+      "kind": "actual-command",
+      "result": "pass",
+      "checkedAt": "2026-11-03T03:37:10.211Z",
+      "observed": {
+        "syntax": "pass",
+        "envFileCopied": false
+      }
+    },
+    {
+      "stage": "13",
+      "id": "identity-current-values-and-failure",
+      "kind": "mock-DOM",
+      "result": "pass",
+      "checkedAt": "2026-11-03T03:37:10.212Z",
+      "observed": {
+        "currentInputReplacesOldIdentity": true
+      }
+    },
+    {
+      "stage": "14",
+      "id": "decision-allow",
+      "kind": "mock-DOM",
+      "result": "pass",
+      "checkedAt": "2026-11-03T03:37:10.212Z",
+      "observed": null
+    },
+    {
+      "stage": "14",
+      "id": "decision-deny",
+      "kind": "mock-DOM",
+      "result": "pass",
+      "checkedAt": "2026-11-03T03:37:10.212Z",
+      "observed": null
+    },
+    {
+      "stage": "14",
+      "id": "decision-challenge",
+      "kind": "mock-DOM",
+      "result": "pass",
+      "checkedAt": "2026-11-03T03:37:10.212Z",
+      "observed": null
+    },
+    {
+      "stage": "14",
+      "id": "decision-unknown",
+      "kind": "mock-DOM",
+      "result": "pass",
+      "checkedAt": "2026-11-03T03:37:10.212Z",
+      "observed": null
+    },
+    {
+      "stage": "15",
+      "id": "event-filter-detail-and-reset",
+      "kind": "mock-DOM",
+      "result": "pass",
+      "checkedAt": "2026-11-03T03:37:10.213Z",
+      "observed": null
+    },
+    {
+      "stage": "16",
+      "id": "diagnostics-safe-copy-and-unsupported-action",
+      "kind": "mock-DOM",
+      "result": "pass",
+      "checkedAt": "2026-11-03T03:37:10.213Z",
+      "observed": null
+    },
+    {
+      "stage": "17",
+      "id": "ai-check-separate-from-explanation-and-reset",
+      "kind": "mock-DOM",
+      "result": "pass",
+      "checkedAt": "2026-11-03T03:37:10.213Z",
+      "observed": null
+    },
+    {
+      "stage": "18",
+      "id": "explanation-evidence-and-not-executed",
+      "kind": "mock-DOM",
+      "result": "pass",
+      "checkedAt": "2026-11-03T03:37:10.214Z",
+      "observed": null
+    },
+    {
+      "stage": "19",
+      "id": "ACK-is-not-effect-and-no-action-request",
+      "kind": "mock-DOM",
+      "result": "pass",
+      "checkedAt": "2026-11-03T03:37:10.215Z",
+      "observed": {
+        "effectSource": "mock only",
+        "productionEffect": "UNV"
+      }
+    },
+    {
+      "stage": "20",
+      "id": "OSV-partial-and-exact-version",
+      "kind": "mock-DOM",
+      "result": "pass",
+      "checkedAt": "2026-11-03T03:37:10.215Z",
+      "observed": null
+    },
+    {
+      "stage": "21",
+      "id": "readme-runbook-and-config-example",
+      "kind": "source-inspection",
+      "result": "pass",
+      "checkedAt": "2026-11-03T03:37:10.215Z",
+      "observed": null
+    },
+    {
+      "stage": "13-16/21",
+      "id": "local-server-demo",
+      "kind": "actual-local-HTTP",
+      "result": "pass",
+      "checkedAt": "2026-11-03T03:37:10.360Z",
+      "observed": {
+        "port": 5216,
+        "homeHttp": 200,
+        "studentHttp": 200,
+        "identityHttp": 200,
+        "mode": "demo",
+        "scanStatus": "not_configured",
+        "shutdownVerified": true,
+        "origin": "local demo/default only"
+      }
+    },
+    {
+      "stage": "13-21",
+      "id": "local-server-disconnected",
+      "kind": "actual-local-HTTP",
+      "result": "pass",
+      "checkedAt": "2026-11-03T03:37:10.488Z",
+      "observed": {
+        "port": 5216,
+        "homeHttp": 200,
+        "studentHttp": 200,
+        "identityHttp": 503,
+        "mode": "disconnected",
+        "scanStatus": "not_configured",
+        "shutdownVerified": true,
+        "origin": "local demo/default only"
+      }
+    },
+    {
+      "stage": "13-16/21",
+      "id": "local-server-demo-restart",
+      "kind": "actual-local-HTTP",
+      "result": "pass",
+      "checkedAt": "2026-11-03T03:37:10.615Z",
+      "observed": {
+        "port": 5216,
+        "homeHttp": 200,
+        "studentHttp": 200,
+        "identityHttp": 200,
+        "mode": "demo",
+        "scanStatus": "not_configured",
+        "shutdownVerified": true,
+        "origin": "local demo/default only"
+      }
+    }
+  ],
+  "codeHashes": {
+    "on-client/student/extension.mjs": "7eb7f61fabcd4b3645218236f3897a1988303056724fd6591e72601b1e960724",
+    "on-client/public/app.js": "c555770bab6790f5eca7b64a1e6e95cb1b36e2e80e3af2bdf4d8dea16b1596ac",
+    "on-client/src/server.mjs": "f1a3eec9bcc007ec6fe3404cace44d88c98894092a7d8ea7f2d9afea992b9a77",
+    "on-client/package.json": "ce6a2925d620b2055510bc509061b30e5726d3bd9041fa6d687adc5ca7c45d81",
+    "on-client/.env.example": "fbc0a9f437b223855806a4239ba7b9c8b2e7b81e1c6e65337027cbfc43278aa8"
+  },
+  "unverified": [
+    "브라우저 수동 조작·클립보드",
+    "새 PC·프로그램 신규 설치·Node 24.19.0",
+    "실제 계정·SDP/XDR 연결",
+    "AI 승인·모델 실행",
+    "실제 OSV 외부 조회",
+    "조치 집행·원천 효과 관측",
+    "ALEPH 공식 판정"
+  ],
+  "finishedAt": "2026-11-03T03:37:10.615Z",
+  "gitStatusAfter": "",
+  "result": "검사 범위 통과·운영 미확인"
+}
