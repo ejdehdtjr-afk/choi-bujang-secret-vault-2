@@ -1,6 +1,188 @@
 // 이 파일은 학생이 같은 프로젝트에서 이어서 구현합니다.
+// 마무리 제작: 로컬 관측 파일은 제공 SDP/XDR·AI 연결과 별개의 학생 기능이다.
+
+export function normalizePcSnapshot(input, now = Date.now()) {
+  if (!input || input.schema !== 'keshev.pc-observation.v1' || input.source !== 'local-readonly'
+    || typeof input.sampleId !== 'string' || !/^[a-f0-9-]{36}$/.test(input.sampleId)
+    || !Number.isFinite(Date.parse(input.checkedAt)) || Date.parse(input.checkedAt) > now + 120000) {
+    throw new Error('관측 파일 형식 또는 측정 시각을 확인할 수 없습니다. 학생 측정 도구로 다시 생성하세요.');
+  }
+  const allowedSources = {
+    cpu: 'node:os.cpus delta', memory: 'node:os.totalmem/freemem',
+    disk: 'Get-CimInstance Win32_LogicalDisk', network: 'Get-NetAdapter',
+    firewall: 'Get-NetFirewallProfile', systemEvents: 'Get-WinEvent System', applicationEvents: 'Get-WinEvent Application',
+  };
+  const result = {schema: input.schema, source: input.source, sampleId: input.sampleId, checkedAt: input.checkedAt, metrics: {}};
+  const number = (n, max = Number.MAX_SAFE_INTEGER) => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= max;
+  for (const [key, source] of Object.entries(allowedSources)) {
+    const metric = input.metrics?.[key];
+    const validTime = metric && Number.isFinite(Date.parse(metric.checkedAt))
+      && Date.parse(metric.checkedAt) <= Date.parse(input.checkedAt) + 1000
+      && Date.parse(input.checkedAt) - Date.parse(metric.checkedAt) <= 60000;
+    let valid = metric?.status === 'ok' && metric.source === source && validTime;
+    let values = {};
+    if (key === 'cpu') {
+      valid &&= number(metric.value, 100) && number(metric.intervalMs, 10000) && metric.intervalMs >= 500;
+      values = {value: metric?.value, intervalMs: metric?.intervalMs};
+    } else if (key === 'memory' || key === 'disk') {
+      valid &&= number(metric.totalGiB) && metric.totalGiB > 0 && number(metric.freeGiB, metric.totalGiB);
+      values = {totalGiB: metric?.totalGiB, freeGiB: metric?.freeGiB};
+    } else if (key === 'network') {
+      valid &&= Number.isSafeInteger(metric.upAdapters) && number(metric.upAdapters, 10000);
+      values = {upAdapters: metric?.upAdapters};
+    } else if (key === 'firewall') {
+      valid &&= Array.isArray(metric.enabled) && metric.enabled.length === 3 && metric.enabled.every(v => typeof v === 'boolean');
+      values = {enabled: Array.isArray(metric?.enabled) ? metric.enabled.slice() : []};
+    } else {
+      valid &&= number(metric.warning, 1001) && Number.isSafeInteger(metric.warning)
+        && number(metric.error, 1001) && Number.isSafeInteger(metric.error)
+        && typeof metric.capped === 'boolean' && metric.windowHours === 24;
+      values = {warning: metric?.warning, error: metric?.error, capped: metric?.capped, windowHours: 24};
+    }
+    result.metrics[key] = valid ? {status: 'ok', source, checkedAt: metric.checkedAt, ...values}
+      : {status: 'unverifiable', source, checkedAt: validTime ? metric.checkedAt : input.checkedAt,
+        reason: '조회 실패·권한 제한·지원하지 않는 형식 중 하나입니다. 정상으로 대체하지 않습니다.'};
+  }
+  return result;
+}
+
+export function createLocalDashboard() {
+  const el = (tag, text, className) => {
+    const node = document.createElement(tag);
+    if (text !== undefined) node.textContent = text;
+    if (className) node.className = className;
+    return node;
+  };
+  const root = el('section', undefined, 'card student');
+  root.id = 'student-local-dashboard';
+  root.setAttribute('aria-label', '케셰브 개인 보안 관제 대시보드');
+  root.appendChild(el('h2', '케셰브 · 개인 보안 관제 대시보드'));
+  root.appendChild(el('p', '핵심 기능 ① 내 PC 실측 ② 연결·방화벽 설정 조회 ③ 최근 Windows 경고·오류 건수', 'muted'));
+  root.appendChild(el('p', '학생 추가 기능 · 읽기 전용 · 파일은 이 브라우저에서만 읽습니다. 외부로 전송하지 않습니다.', 'tag tag-student'));
+  const controls = el('div', undefined, 'row');
+  const choose = el('button', '측정 폴더 선택', 'btn'); choose.type = 'button';
+  const refresh = el('button', '다시 조회', 'btn'); refresh.type = 'button';
+  const label = el('label', '관측 JSON 파일 선택(폴더 선택을 지원하지 않을 때): ');
+  const input = el('input'); input.type = 'file'; input.accept = '.json,application/json';
+  label.appendChild(input);
+  controls.appendChild(choose); controls.appendChild(refresh); root.appendChild(controls); root.appendChild(label);
+  const notice = el('p'); notice.setAttribute('role', 'status'); notice.setAttribute('aria-live', 'polite'); root.appendChild(notice);
+  const body = el('div'); root.appendChild(body);
+  const history = [];
+  let directory = null, snapshot = null, state = 'idle', message = '', generation = 0, ageTimer;
+  const time = iso => new Date(iso).toLocaleString('ko-KR', {hour12: false, timeZoneName: 'short'});
+  const num = n => n.toLocaleString('ko-KR', {maximumFractionDigits: 1});
+  const table = (title, heads, rows) => {
+    const wrap = el('div', undefined, 'vulnerabilities-result');
+    const t = el('table'); t.appendChild(el('caption', title));
+    const thead = el('thead'), tr = el('tr');
+    for (const h of heads) { const th = el('th', h); th.setAttribute('scope', 'col'); tr.appendChild(th); }
+    thead.appendChild(tr); t.appendChild(thead);
+    const tbody = el('tbody');
+    for (const row of rows) { const r = el('tr'); for (const value of row) r.appendChild(el('td', String(value))); tbody.appendChild(r); }
+    t.appendChild(tbody); wrap.appendChild(t); return wrap;
+  };
+  const paint = () => {
+    body.replaceChildren();
+    const stale = snapshot && Date.now() - Date.parse(snapshot.checkedAt) > 120000;
+    notice.className = `state state-${state === 'error' ? 'error' : state === 'loading' ? 'loading' : 'empty'}`;
+    notice.textContent = state === 'loading' ? '로컬 관측 파일을 읽는 중입니다.' : state === 'error' ? `조회 실패: ${message} 이전 값을 현재 결과로 표시하지 않습니다.`
+      : snapshot ? `${stale ? '오래된 관측 · 현재 상태 확인 불가' : '로컬 관측 파일 읽음'} · 측정 ${time(snapshot.checkedAt)} · 검증되지 않은 로컬 파일이며 운영 연결 성공을 뜻하지 않습니다.`
+        : '요청 전 · 학생 측정 도구를 실행한 뒤 측정 폴더 또는 JSON 파일을 선택하세요.';
+    choose.disabled = refresh.disabled = input.disabled = state === 'loading';
+    const metrics = snapshot?.metrics;
+    const textFor = key => {
+      const m = metrics?.[key];
+      if (state !== 'ok' || stale || m?.status !== 'ok') return stale ? '확인 불가 · 2분이 지난 측정' : '확인 불가';
+      if (key === 'cpu') return `${num(m.value)} % · ${num(m.intervalMs / 1000)}초 구간 평균`;
+      if (key === 'memory') return `${num(m.totalGiB - m.freeGiB)} / ${num(m.totalGiB)} GiB 사용`;
+      if (key === 'disk') return `${num(m.freeGiB)} / ${num(m.totalGiB)} GiB 여유`;
+      return `활성 어댑터 ${m.upAdapters}개 · 인터넷·SDP 연결 보장 아님`;
+    };
+    const cards = el('div', undefined, 'grid-2');
+    for (const group of [[['CPU 사용률', 'cpu'], ['메모리 사용량', 'memory']], [['시스템 디스크 여유 공간', 'disk'], ['네트워크 인터페이스', 'network']]]) {
+      const pair = el('div', undefined, 'grid-2');
+      for (const [title, key] of group) {
+        const card = el('section', undefined, 'card'); card.setAttribute('data-student-pc-card', key);
+        card.appendChild(el('h3', title)); card.appendChild(el('p', textFor(key)));
+        const m = metrics?.[key];
+        card.appendChild(el('p', m && state === 'ok' ? `${m.source} · ${time(m.checkedAt)}` : '측정 근거 없음', 'muted'));
+        if (state === 'ok' && !stale && m?.status === 'ok' && ['cpu', 'memory'].includes(key)) {
+          const meter = el('meter'); meter.min = 0; meter.max = 100;
+          meter.value = key === 'cpu' ? m.value : (1 - m.freeGiB / m.totalGiB) * 100;
+          meter.setAttribute('aria-label', `${title} ${num(meter.value)} 퍼센트`); card.appendChild(meter);
+        }
+        pair.appendChild(card);
+      }
+      cards.appendChild(pair);
+    }
+    body.appendChild(cards);
+    body.appendChild(el('h3', '측정 추이 · 이 화면에서 읽은 최근 12개 관측'));
+    body.appendChild(table('과거 관측 기록 · 현재 조회 실패와 별도로 보존', ['측정 시각', 'CPU (%)', '메모리 사용 (GiB)'],
+      history.length ? history.map(s => [time(s.checkedAt), s.metrics.cpu.status === 'ok' ? num(s.metrics.cpu.value) : '확인 불가',
+        s.metrics.memory.status === 'ok' ? num(s.metrics.memory.totalGiB - s.metrics.memory.freeGiB) : '확인 불가']) : [['아직 없음', '확인 불가', '확인 불가']]));
+    const details = [];
+    const firewall = metrics?.firewall;
+    details.push(['방화벽 설정', state !== 'ok' || stale || firewall?.status !== 'ok' ? '확인 불가' : ['도메인', '개인', '공용'].map((name, i) => `${name}: ${firewall.enabled[i] ? '켜짐' : '꺼짐'}`).join(' / '), firewall?.source ?? '미조회', firewall ? time(firewall.checkedAt) : '미조회']);
+    for (const [key, title] of [['systemEvents', 'System 로그'], ['applicationEvents', 'Application 로그']]) {
+      const m = metrics?.[key];
+      details.push([title, state !== 'ok' || stale || m?.status !== 'ok' ? '확인 불가' : `최근 24시간 · 경고 ${m.warning}건 · 오류 ${m.error}건${m.capped ? ' · 최신 1,001건까지만 집계(일부)' : ''}`, m?.source ?? '미조회', m ? time(m.checkedAt) : '미조회']);
+    }
+    body.appendChild(el('h3', '연결·기록 조회'));
+    body.appendChild(table('보안 설정·로그의 읽기 전용 관측', ['대상', '관측 결과', '출처', '측정 시각'], details));
+    body.appendChild(el('p', '경고·오류 건수는 침해·공격 탐지 판정이 아닙니다. 방화벽 설정을 변경하지 않습니다. PC 조회와 SDP/XDR·AI 연결 상태는 별개이며 제공 화면에서 각각 확인하세요.', 'notice'));
+    const help = el('details'), summary = el('summary', '확인 불가일 때 · 측정과 재현 방법'); help.appendChild(summary);
+    help.appendChild(el('p', 'on-client 폴더의 PowerShell에서 node tools/student-dashboard.mjs 명령으로 서버와 측정을 함께 실행할 수 있습니다. 출력된 측정 폴더를 선택한 뒤 다시 조회를 누르세요. 폴더 선택을 지원하지 않으면 그 폴더의 최신 pc-observation.json 파일을 매번 다시 선택하세요.'));
+    help.appendChild(el('p', '값은 조회한 PC의 것입니다. 파일 출처를 확인하고 작업 관리자와 비슷한 시각·단위로 비교하세요. 권한 부족은 관리자 권한 상승 대신 확인 불가로 남깁니다. JSON에는 인증값이나 로그 본문이 필요하지 않습니다.'));
+    body.appendChild(help);
+  };
+  const load = async getFile => {
+    const gen = ++generation; clearTimeout(ageTimer); state = 'loading'; snapshot = null; paint();
+    try {
+      const file = await getFile();
+      if (!file || file.size > 128 * 1024) throw Error('관측 파일은 128 KiB 이하 JSON이어야 합니다.');
+      const next = normalizePcSnapshot(JSON.parse(await file.text()));
+      if (gen !== generation) return;
+      snapshot = next; state = 'ok';
+      if (!history.some(s => s.sampleId === next.sampleId)) {
+        history.push(next); history.sort((a, b) => Date.parse(a.checkedAt) - Date.parse(b.checkedAt));
+        if (history.length > 12) history.shift();
+      }
+      ageTimer = setTimeout(paint, Math.max(1, Date.parse(next.checkedAt) + 120001 - Date.now()));
+    } catch {
+      if (gen !== generation) return;
+      snapshot = null; state = 'error'; message = '파일 선택·읽기·형식을 확인할 수 없습니다. 학생 측정 도구가 생성한 최신 JSON을 다시 선택하세요.';
+    }
+    paint();
+  };
+  choose.addEventListener('click', async () => {
+    if (typeof globalThis.showDirectoryPicker !== 'function') {
+      notice.textContent = '이 브라우저는 폴더 선택을 지원하지 않습니다. 관측 JSON 파일 선택을 사용하세요.'; input.focus(); return;
+    }
+    try {
+      const selected = await globalThis.showDirectoryPicker({mode: 'read', id: 'keshev-observations'});
+      directory = selected;
+      await load(async () => (await directory.getFileHandle('pc-observation.json')).getFile());
+    } catch (error) {
+      if (error?.name !== 'AbortError') await load(async () => { throw Error('folder unavailable'); });
+    }
+  });
+  input.addEventListener('change', async () => { directory = null; const file = input.files?.[0]; if (file) await load(async () => file); input.value = ''; });
+  refresh.addEventListener('click', () => {
+    if (directory) return load(async () => (await directory.getFileHandle('pc-observation.json')).getFile());
+    notice.textContent = '최신 관측 JSON 파일을 다시 선택하세요. 파일을 고르기 전에는 새로 측정한 것으로 표시하지 않습니다.';
+    input.click();
+  });
+  paint();
+  return root;
+}
 // 제공 UI를 받은 것만으로 단계 완료를 인정하지 않습니다.
 export function createStudentView() {
+  // 제공 파일·메뉴는 유지하고 학생 대시보드만 보호 현황 앞에 추가한다.
+  if (typeof document.getElementById === 'function') {
+    const panel = document.getElementById('view-protection');
+    if (panel && !document.getElementById('student-local-dashboard')) panel.prepend(createLocalDashboard());
+  }
   // 제공 UI가 정규화한 오류만 표시한다. 알 수 없는 원문·설정은 노출하지 않는다.
   const describeAiError = (error) => {
     const account = '담당자에게 계정 연결과 앱 권한의 준비 상태를 확인하세요.';
