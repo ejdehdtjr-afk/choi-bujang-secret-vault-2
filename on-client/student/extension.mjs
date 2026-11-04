@@ -30,6 +30,18 @@ export function normalizePcSnapshot(input, now = Date.now()) {
     } else if (key === 'network') {
       valid &&= Number.isSafeInteger(metric.upAdapters) && number(metric.upAdapters, 10000);
       values = {upAdapters: metric?.upAdapters};
+      const types = metric?.types;
+      if (types && ['ethernet', 'wifi', 'other'].every(k => Number.isSafeInteger(types[k]) && number(types[k], 10000))
+        && types.ethernet + types.wifi + types.other === metric.upAdapters) values.types = {ethernet: types.ethernet, wifi: types.wifi, other: types.other};
+      const categories = ['Public', 'Private', 'DomainAuthenticated'];
+      const connectivity = ['Disconnected', 'NoTraffic', 'Subnet', 'LocalNetwork', 'Internet'];
+      values.profilesStatus = metric?.profilesStatus === 'ok' && metric?.profilesSource === 'Get-NetConnectionProfile'
+        && Array.isArray(metric.profiles) && metric.profiles.length <= 32 && typeof metric.profilesCapped === 'boolean' ? 'ok' : 'unverifiable';
+      values.profiles = values.profilesStatus === 'ok' ? metric.profiles.map(p => ({
+        category: categories.includes(p?.category) ? p.category : 'unknown',
+        ipv4: connectivity.includes(p?.ipv4) ? p.ipv4 : 'unknown', ipv6: connectivity.includes(p?.ipv6) ? p.ipv6 : 'unknown',
+      })) : [];
+      values.profilesCapped = metric?.profilesCapped === true;
     } else if (key === 'firewall') {
       valid &&= Array.isArray(metric.enabled) && metric.enabled.length === 3 && metric.enabled.every(v => typeof v === 'boolean');
       values = {enabled: Array.isArray(metric?.enabled) ? metric.enabled.slice() : []};
@@ -97,7 +109,7 @@ export function createLocalDashboard() {
       if (key === 'cpu') return `${num(m.value)} % · ${num(m.intervalMs / 1000)}초 구간 평균`;
       if (key === 'memory') return `${num(m.totalGiB - m.freeGiB)} / ${num(m.totalGiB)} GiB 사용`;
       if (key === 'disk') return `${num(m.freeGiB)} / ${num(m.totalGiB)} GiB 여유`;
-      return `활성 어댑터 ${m.upAdapters}개 · 인터넷·SDP 연결 보장 아님`;
+      return `활성 어댑터 ${m.upAdapters}개${m.types ? ` · 이더넷 계열 ${m.types.ethernet} / Wi-Fi ${m.types.wifi} / 기타 ${m.types.other}` : ' · 매체 종류 확인 불가'} · SDP 연결과 별개`;
     };
     const cards = el('div', undefined, 'grid-2');
     for (const group of [[['CPU 사용률', 'cpu'], ['메모리 사용량', 'memory']], [['시스템 디스크 여유 공간', 'disk'], ['네트워크 인터페이스', 'network']]]) {
@@ -122,6 +134,15 @@ export function createLocalDashboard() {
       history.length ? history.map(s => [time(s.checkedAt), s.metrics.cpu.status === 'ok' ? num(s.metrics.cpu.value) : '확인 불가',
         s.metrics.memory.status === 'ok' ? num(s.metrics.memory.totalGiB - s.metrics.memory.freeGiB) : '확인 불가']) : [['아직 없음', '확인 불가', '확인 불가']]));
     const details = [];
+    const network = metrics?.network;
+    const profileLabels = {Public: '공용', Private: '개인', DomainAuthenticated: '도메인 인증',
+      Disconnected: '연결 안 됨', NoTraffic: '트래픽 없음', Subnet: '서브넷 연결', LocalNetwork: '로컬 네트워크 연결', Internet: '인터넷 연결 표시', unknown: '확인 불가'};
+    if (state === 'ok' && !stale && network?.status === 'ok' && network.profilesStatus === 'ok') {
+      if (network.profiles.length === 0) details.push(['네트워크 연결 프로필', '반환된 프로필 없음 · 인터넷·SDP 성공을 뜻하지 않음', 'Get-NetConnectionProfile', time(network.checkedAt)]);
+      network.profiles.forEach((p, index) => details.push([`연결 프로필 ${index + 1}${network.profilesCapped ? ' · 일부 목록' : ''}`,
+        `${profileLabels[p.category]}(${p.category}) · IPv4 ${profileLabels[p.ipv4]}(${p.ipv4}) · IPv6 ${profileLabels[p.ipv6]}(${p.ipv6})`,
+        'Get-NetConnectionProfile', time(network.checkedAt)]));
+    } else details.push(['네트워크 연결 프로필', '확인 불가 · 권한 제한·미조회·조회 실패를 정상으로 표시하지 않음', 'Get-NetConnectionProfile', network ? time(network.checkedAt) : '미조회']);
     const firewall = metrics?.firewall;
     details.push(['방화벽 설정', state !== 'ok' || stale || firewall?.status !== 'ok' ? '확인 불가' : ['도메인', '개인', '공용'].map((name, i) => `${name}: ${firewall.enabled[i] ? '켜짐' : '꺼짐'}`).join(' / '), firewall?.source ?? '미조회', firewall ? time(firewall.checkedAt) : '미조회']);
     for (const [key, title] of [['systemEvents', 'System 로그'], ['applicationEvents', 'Application 로그']]) {
@@ -130,9 +151,9 @@ export function createLocalDashboard() {
     }
     body.appendChild(el('h3', '연결·기록 조회'));
     body.appendChild(table('보안 설정·로그의 읽기 전용 관측', ['대상', '관측 결과', '출처', '측정 시각'], details));
-    body.appendChild(el('p', '경고·오류 건수는 침해·공격 탐지 판정이 아닙니다. 방화벽 설정을 변경하지 않습니다. PC 조회와 SDP/XDR·AI 연결 상태는 별개이며 제공 화면에서 각각 확인하세요.', 'notice'));
+    body.appendChild(el('p', '경고·오류 건수는 침해·공격 탐지 판정이 아닙니다. 이더넷 계열에는 가상 어댑터도 포함합니다. 방화벽 설정을 변경하지 않습니다. Windows의 Internet 표시와 실제 업무 앱·SDP 접속 성공은 별개이며 제공 화면에서 각각 확인하세요.', 'notice'));
     const help = el('details'), summary = el('summary', '확인 불가일 때 · 측정과 재현 방법'); help.appendChild(summary);
-    help.appendChild(el('p', 'on-client 폴더의 PowerShell에서 node tools/student-dashboard.mjs 명령으로 서버와 측정을 함께 실행할 수 있습니다. 출력된 측정 폴더를 선택한 뒤 다시 조회를 누르세요. 폴더 선택을 지원하지 않으면 그 폴더의 최신 pc-observation.json 파일을 매번 다시 선택하세요.'));
+    help.appendChild(el('p', 'on-client 폴더의 PowerShell에서 node student/extension.mjs --dashboard 명령으로 서버와 측정을 함께 실행할 수 있습니다. 출력된 측정 폴더를 선택한 뒤 다시 조회를 누르세요. 폴더 선택을 지원하지 않으면 그 폴더의 최신 pc-observation.json 파일을 매번 다시 선택하세요.'));
     help.appendChild(el('p', '값은 조회한 PC의 것입니다. 파일 출처를 확인하고 작업 관리자와 비슷한 시각·단위로 비교하세요. 권한 부족은 관리자 권한 상승 대신 확인 불가로 남깁니다. JSON에는 인증값이나 로그 본문이 필요하지 않습니다.'));
     body.appendChild(help);
   };
@@ -867,4 +888,219 @@ export function createStudentView() {
       return root;
     },
   };
+}
+
+// 학생 런타임: 브라우저에서는 호출하지 않는 Node 전용 읽기·실행 기능. 제공 코드는 변경하지 않는다.
+export async function collectPcSnapshot() {
+  const [{default: os}, {execFile}, {promisify}, {setTimeout: delay}, {randomUUID}, {resolve}] = await Promise.all([
+    import('node:os'), import('node:child_process'), import('node:util'), import('node:timers/promises'), import('node:crypto'), import('node:path'),
+  ]);
+const run = promisify(execFile);
+const psScript = `
+$ErrorActionPreference='Stop'
+[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)
+function Read-Metric($Source, $Read) {
+  try { $value = & $Read; $value.status='ok'; $value.source=$Source; $value.checkedAt=[DateTime]::UtcNow.ToString('o'); return $value }
+  catch { return @{status='unverifiable';source=$Source;checkedAt=[DateTime]::UtcNow.ToString('o')} }
+}
+function Read-Events($Log) {
+  $events=@()
+  try { $events=@(Get-WinEvent -FilterHashtable @{LogName=$Log;Level=2,3;StartTime=(Get-Date).AddHours(-24)} -MaxEvents 1001 -ErrorAction Stop) }
+  catch { if ($_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*') { throw } }
+  return @{warning=@($events | Where-Object Level -eq 3).Count;error=@($events | Where-Object Level -eq 2).Count;capped=($events.Count -ge 1001);windowHours=24}
+}
+$result=@{}
+$result.disk=Read-Metric 'Get-CimInstance Win32_LogicalDisk' {
+  $drive=$env:SystemDrive
+  if ($drive -notmatch '^[A-Za-z]:$') { throw 'system drive unavailable' }
+  $disk=Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$drive'" -ErrorAction Stop
+  if (!$disk -or !$disk.Size -or $null -eq $disk.FreeSpace) { throw 'disk unavailable' }
+  @{totalGiB=[double]$disk.Size/1GB;freeGiB=[double]$disk.FreeSpace/1GB}
+}
+$result.network=Read-Metric 'Get-NetAdapter' {
+  $active=@(Get-NetAdapter -ErrorAction Stop | Where-Object Status -eq 'Up')
+  $types=@{ethernet=0;wifi=0;other=0}
+  foreach($adapter in $active) {
+    $media=[string]$adapter.MediaType
+    if ($media -eq 'Native 802.11') { $types.wifi++ }
+    elseif ($media -eq '802.3') { $types.ethernet++ }
+    else { $types.other++ }
+  }
+  $network=@{upAdapters=$active.Count;types=$types;profilesStatus='unverifiable';profilesSource='Get-NetConnectionProfile';profiles=@();profilesCapped=$false}
+  try {
+    $profiles=@(Get-NetConnectionProfile -ErrorAction Stop | Select-Object -First 33)
+    $safe=@($profiles | Select-Object -First 32 | ForEach-Object {
+      @{category=[string]$_.NetworkCategory;ipv4=[string]$_.IPv4Connectivity;ipv6=[string]$_.IPv6Connectivity}
+    })
+    $network.profiles=$safe; $network.profilesStatus='ok'; $network.profilesCapped=($profiles.Count -gt 32)
+  } catch { $network.profilesStatus='unverifiable' }
+  $network
+}
+$result.firewall=Read-Metric 'Get-NetFirewallProfile' {
+  $profiles=@(Get-NetFirewallProfile -ErrorAction Stop)
+  $enabled=@()
+  foreach($name in @('Domain','Private','Public')) {
+    $profile=@($profiles | Where-Object Name -eq $name)
+    if ($profile.Count -ne 1 -or [int]$profile[0].Enabled -notin @(0,1)) { throw 'profile unavailable' }
+    $enabled+=([int]$profile[0].Enabled -eq 1)
+  }
+  @{enabled=$enabled}
+}
+$result.systemEvents=Read-Metric 'Get-WinEvent System' { Read-Events 'System' }
+$result.applicationEvents=Read-Metric 'Get-WinEvent Application' { Read-Events 'Application' }
+$result | ConvertTo-Json -Depth 6 -Compress
+`;
+
+function cpuTimes() {
+  return os.cpus().reduce((sum, cpu) => {
+    sum.idle += cpu.times.idle;
+    sum.total += Object.values(cpu.times).reduce((a, b) => a + b, 0);
+    return sum;
+  }, {idle: 0, total: 0});
+}
+
+  const before = cpuTimes(), start = performance.now();
+  await delay(1000);
+  const after = cpuTimes(), intervalMs = performance.now() - start;
+  const measured = new Date().toISOString();
+  const total = after.total - before.total;
+  const metrics = {
+    cpu: {status: total > 0 ? 'ok' : 'unverifiable', source: 'node:os.cpus delta', checkedAt: measured,
+      value: total > 0 ? Math.min(100, Math.max(0, 100 * (1 - (after.idle - before.idle) / total))) : null, intervalMs},
+    memory: {status: 'ok', source: 'node:os.totalmem/freemem', checkedAt: measured,
+      totalGiB: os.totalmem() / 2 ** 30, freeGiB: os.freemem() / 2 ** 30},
+  };
+  if (process.platform === 'win32') {
+    try {
+      const powershell = resolve(process.env.SystemRoot ?? 'C:/Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe');
+      const {stdout} = await run(powershell, ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(psScript, 'utf16le').toString('base64')],
+        {timeout: 20000, maxBuffer: 128 * 1024, windowsHide: true});
+      const data = JSON.parse(stdout.replace(/^\uFEFF/, '').trim());
+      for (const key of ['disk', 'network', 'firewall', 'systemEvents', 'applicationEvents']) metrics[key] = data[key];
+    } catch {
+      // 오류 원문에는 기기 정보가 섞일 수 있으므로 고정 상태만 남긴다.
+    }
+  }
+  return {schema: 'keshev.pc-observation.v1', source: 'local-readonly', sampleId: randomUUID(), checkedAt: new Date().toISOString(), metrics};
+}
+
+export async function runPcSnapshotCli(args = process.argv.slice(2)) {
+  const [{mkdir, readFile, writeFile, rename, unlink, realpath, lstat}, {dirname, resolve, isAbsolute, relative}, {fileURLToPath}, {randomUUID}, {setTimeout: delay}] = await Promise.all([
+    import('node:fs/promises'), import('node:path'), import('node:url'), import('node:crypto'), import('node:timers/promises'),
+  ]);
+
+  let output, watch = false;
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--watch' && !watch) watch = true;
+    else if (args[i] === '--output' && !output && args[i + 1]) output = args[++i];
+    else throw Error('인자 확인: node student/extension.mjs --collect [--watch] --output <프로젝트 밖 JSON 절대 경로>');
+  }
+  if (!output || !isAbsolute(output) || !output.endsWith('.json')) throw Error('프로젝트 밖의 JSON 절대 경로가 필요합니다.');
+  const project = await realpath(resolve(dirname(fileURLToPath(import.meta.url)), '../..'));
+  await mkdir(dirname(output), {recursive: true});
+  output = resolve(await realpath(dirname(output)), output.split(/[\\/]/).pop());
+  const rel = relative(project, output);
+  if (!(rel.startsWith('..\\') || rel.startsWith('../') || isAbsolute(rel))) throw Error('관측 파일은 프로젝트 밖에 저장하세요.');
+  try { await lstat(output); throw Error('기존 파일을 보존합니다. 새 출력 파일을 지정하세요.'); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  const temporary = output + '.' + randomUUID() + '.tmp';
+  let sampleId;
+  do {
+    const snapshot = await collectPcSnapshot();
+    if (sampleId) {
+      // 이번 실행이 직전에 쓴 파일 이외에는 덮어쓰지 않는다.
+      const stat = await lstat(output);
+      if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 128 * 1024 || JSON.parse(await readFile(output, 'utf8')).sampleId !== sampleId) {
+        throw Error('출력 파일이 바뀌었습니다. 덮어쓰지 않고 중단합니다.');
+      }
+    }
+    await writeFile(temporary, JSON.stringify(snapshot, null, 2) + '\n', {encoding: 'utf8', flag: 'wx'});
+    if (sampleId) await rename(temporary, output);
+    else {
+      // 처음에는 배타적으로 생성해 기존 자료를 보존한다.
+      try { await writeFile(output, await readFile(temporary), {flag: 'wx'}); } finally { await unlink(temporary); }
+    }
+    sampleId = snapshot.sampleId;
+    console.log(`케셰브 로컬 관측 저장 · ${snapshot.checkedAt} · 읽기 전용 · 외부 전송 없음`);
+    if (watch) await delay(15000);
+  } while (watch);
+}
+
+export async function runStudentDashboard(args = process.argv.slice(2)) {
+  const [{spawn}, {mkdtemp, mkdir}, {resolve, dirname, join}, {fileURLToPath}, {default: os}] = await Promise.all([
+    import('node:child_process'), import('node:fs/promises'), import('node:path'), import('node:url'), import('node:os'),
+  ]);
+const app = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+let demo = false, port = process.env.ON_PORT ?? '5189';
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--demo' && !demo) demo = true;
+  else if (args[i] === '--port' && args[i + 1]) port = args[++i];
+  else { console.error('사용법: node student/extension.mjs --dashboard [--demo] [--port 5226]'); process.exit(1); }
+}
+if (!/^\d+$/.test(port) || Number(port) < 1024 || Number(port) > 65535) {
+  console.error('1024~65535 사이의 포트를 지정하세요.'); process.exit(1);
+}
+if (process.platform !== 'win32') {
+  console.error('이 학생 실행 도구는 Windows에서만 확인했습니다. 다른 환경은 미지원입니다.'); process.exit(1);
+}
+const children = new Set();
+let stopping = false, collectorStarted = false;
+const stop = (exitCode = 0) => {
+  if (stopping) return;
+  stopping = true;
+  for (const child of children) child.kill();
+  process.exitCode = exitCode;
+};
+process.once('SIGINT', () => stop()); process.once('SIGTERM', () => stop());
+const child = (file, extra, env) => {
+  const p = spawn(process.execPath, [resolve(app, file), ...extra], {cwd: app, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe']});
+  children.add(p);
+  p.stderr.on('data', () => {}); // 기기·설정이 섞인 원문 스택을 저장·재출력하지 않는다.
+  p.once('error', () => { console.error('실행 실패: Node.js·작업 폴더를 확인하세요.'); stop(1); });
+  p.once('exit', code => {
+    children.delete(p);
+    if (!stopping) { console.error('학생 실행이 종료됐습니다. 포트 충돌·실행 인자를 확인하세요. 기존 프로세스는 종료하지 않습니다.'); stop(code || 1); }
+  });
+  return p;
+};
+const server = child('src/server.mjs', demo ? ['--demo'] : [], {...process.env, ON_PORT: port});
+let startup = '';
+server.stdout.on('data', async bytes => {
+  startup += bytes.toString('utf8');
+  if (collectorStarted || !startup.includes(`http://127.0.0.1:${port}`)) return;
+  collectorStarted = true;
+  try {
+    const observations = join(process.env.LOCALAPPDATA ?? join(os.homedir(), 'AppData', 'Local'), 'Keshev', 'observations');
+    await mkdir(observations, {recursive: true});
+    const directory = await mkdtemp(join(observations, 'session-'));
+    if (stopping) return;
+    const collector = child('student/extension.mjs', ['--collect', '--watch', '--output', join(directory, 'pc-observation.json')], process.env);
+    collector.stdout.on('data', data => process.stdout.write(data));
+    console.log(`케셰브 대시보드: http://127.0.0.1:${port}/`);
+    console.log(`측정 폴더: ${directory}`);
+    console.log('브라우저의 측정 폴더 선택에서 위 폴더를 선택하세요. 파일 선택도 사용할 수 있습니다.');
+    console.log(`기존 업무 자료: ${demo ? '예제(demo), 실제 연결 아님' : '제공 서버의 실제 연결 상태에 따름'} · PC 측정과 별개`);
+    console.log('종료: 이 창에서 Ctrl+C. 서버와 측정 도구만 함께 종료합니다. 설치 프로그램을 만들지 않습니다.');
+  } catch { console.error('관측 폴더를 만들지 못했습니다. 사용자 로컬 폴더 접근을 확인하세요.'); stop(1); }
+});
+const startupTimeout = setTimeout(() => { if (!collectorStarted) { console.error('로컬 서버 시작을 확인하지 못했습니다.'); stop(1); } }, 10000);
+startupTimeout.unref();
+
+}
+
+// 같은 파일을 명시적으로 Node에서 실행할 때만 시작한다. 브라우저 import는 측정하지 않는다.
+if (typeof process !== 'undefined' && process.versions?.node && process.argv?.[1]) {
+  const {pathToFileURL} = await import('node:url');
+  const {resolve} = await import('node:path');
+  if (pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
+    const [mode, ...args] = process.argv.slice(2);
+    try {
+      if (mode === '--collect') await runPcSnapshotCli(args);
+      else if (mode === '--dashboard') await runStudentDashboard(args);
+      else throw Error('explicit mode required');
+    } catch {
+      console.error('학생 실행 실패: --dashboard 또는 --collect와 실행 인자·새 출력 경로를 확인하세요.');
+      process.exitCode = 1;
+    }
+  }
 }

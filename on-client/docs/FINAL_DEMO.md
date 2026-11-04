@@ -1,6 +1,6 @@
 # 케셰브 마무리 제작 · 실행·시연·근거
 
-학생 버전: `final-dashboard-2026.11.04-preview` — **검증 중**. 작성일 2026-11-04(Asia/Seoul).
+학생 버전: `final-dashboard-2026.11.04-rc1` — **학생 제출 후보 · 운영 연동 미확인**. 작성일 2026-11-04(Asia/Seoul).
 화면: 관제 대시보드형. 배포 형태: 포장 없이 프로젝트 폴더에서 Windows 로컬 실행.
 기준 기록: 22단계 `55c987fefa9cc1a36e83b95b83c4b74c37453bd1`에서 새 브랜치 `codex/final-dashboard`로 이어 작업했다. 앞 단계 원문과 Git 기록은 보존한다. 이 기준 해시는 이번 수정 후 최종 커밋을 뜻하지 않는다. 제출할 해시는 마지막 `git rev-parse HEAD`와 원격의 실제 값으로 확인한다.
 
@@ -9,16 +9,16 @@
 | 핵심 기능 | 학생이 추가한 부분 | 값의 출처 | 현재 한계 |
 |---|---|---|---|
 | 내 PC 실측 | 상태 카드 4개 중 CPU·메모리·디스크, 표본 추이 | Node `os.cpus()` 전후 차이 약 1초; `os.totalmem/freemem`; Windows `Get-CimInstance Win32_LogicalDisk` | 작업 관리자와 같은 집계 방식이 아니다. 디스크는 프로젝트 볼륨이 아니라 Windows 시스템 드라이브. GiB=2^30 bytes |
-| 연결·방화벽 설정 | 활성 어댑터 카드, 프로필별 켜짐/꺼짐 표 | `Get-NetAdapter`, `Get-NetFirewallProfile` | IP·SSID·어댑터 이름을 수집하지 않는다. 어댑터 활성은 인터넷/SDP 접속 성공 증거가 아니다. 프로필 설정과 유효한 모든 방화벽 규칙은 다름 |
+| 연결·방화벽 설정 | 활성 어댑터의 이더넷 계열·Wi-Fi·기타 구분, 네트워크 프로필별 IPv4/IPv6 상태, 방화벽 프로필별 켜짐/꺼짐 표 | `Get-NetAdapter`, `Get-NetConnectionProfile`, `Get-NetFirewallProfile` | IP·SSID·어댑터 이름을 수집하지 않는다. 이더넷 계열에는 가상 어댑터도 포함한다. Windows의 Internet 표시는 실제 업무 앱/SDP 접속 성공 증거가 아니다. 프로필 설정과 유효한 모든 방화벽 규칙은 다름 |
 | Windows 기록 | System/Application 각각 최근 24시간 Warning=3/Error=2 건수 | `Get-WinEvent -FilterHashtable` | 각 로그 최신 1,001건까지만 조회하고 상한에 닿으면 일부 집계라고 표시. Critical/Information/보안 로그·로그 본문·이벤트 ID는 수집하지 않는다. 침해 판정 아님 |
 
-학생 화면은 `student/extension.mjs`의 `createLocalDashboard`, `normalizePcSnapshot`에 있다. 기존 `createStudentView`가 제공 보호 현황 패널 앞에 **학생 소유 section 하나만 추가**한다. 기존 렌더러 8개, data-* 계약과 제공 메뉴는 유지한다. DOM은 `createElement`·`textContent`로 작성하며 HTML 문자열을 해석하지 않는다. 기존 제공 CSS의 카드·표·버튼·포커스 표현을 재사용한다.
+학생 화면은 `student/extension.mjs`의 `createLocalDashboard`, `normalizePcSnapshot`에 있다. 기존 `createStudentView`가 제공 보호 현황 패널 앞에 **학생 소유 section 하나만 추가**한다. 기존 렌더러 8개, data-* 계약과 제공 메뉴는 유지한다. DOM은 `createElement`·`textContent`로 작성하며 HTML 문자열을 해석하지 않는다. 기존 제공 CSS의 카드·표·버튼·포커스 표현을 재사용한다. PC 수집·Node 실행 구현도 같은 학생 파일의 `collectPcSnapshot`·`runStudentDashboard`·`runPcSnapshotCli`에 있다. 브라우저 import 시에는 운영체제 조회를 실행하지 않으며, `--dashboard`/`--collect`로 명시적으로 Node 실행할 때만 동작한다.
 
 | 파일·경계 | 역할 |
 |---|---|
-| `student/extension.mjs` | 학생 대시보드·파일 형식 검사 + 이전 13~20단계 표시 함수 8개 |
-| `tools/student-pc-snapshot.mjs` | 학생 로컬 읽기 전용 측정. 관측 JSON만 프로젝트 밖에 작성 |
-| `tools/student-dashboard.mjs` | 학생 실행 도구. 제공 서버와 측정 프로세스를 함께 시작·종료. 설치/포장 도구 아님 |
+| `student/extension.mjs` | 학생 대시보드·파일 형식 검사·읽기 전용 PC 수집·명시적 Node 실행 + 이전 표시 함수 8개 |
+| `tools/student-pc-snapshot.mjs` | 기존 명령 호환용 import/export만 유지. 실제 수집 구현은 extension.mjs |
+| `tools/student-dashboard.mjs` | 기존 실행 명령 호환용 import만 유지. 실제 실행 구현은 extension.mjs. 설치/포장 도구 아님 |
 | `tools/student-dashboard-check.mjs` | 학생 모의 DOM·오류·실측·제공 파일 보존 검사 |
 | `public/index.html`, `public/app.js`, `public/style.css` | 제공 화면·요청·메뉴·공통 배치. 수정하지 않음 |
 | `src/server.mjs`, `src/engine*`, `src/ai*`, `src/actions*`, `vendor/` | 제공 API·SDP/XDR·AI·조치 서비스. 수정하지 않음 |
@@ -57,7 +57,7 @@ npm.cmd run check
 **확인 2.** 같은 창에서 학생 실행 도구를 시작한다.
 
 ```powershell
-node tools/student-dashboard.mjs --port 5227
+node student/extension.mjs --dashboard --port 5227
 ```
 
 정상 시작 신호는 `케셰브 대시보드: http://127.0.0.1:5227/`, `측정 폴더: ...`, 이어서 `케셰브 로컬 관측 저장 · <UTC 시각>`이다. 서버 시작만으로 계정·AI·SDP 연결 성공을 뜻하지 않는다. 최초 저장까지 약 수초, Windows 조회가 느리면 최대 약 21초 걸릴 수 있다. 창은 실행 중 열린 상태로 둔다.
@@ -77,7 +77,7 @@ node tools/student-dashboard.mjs --port 5227
 업무 기록 예제도 함께 보고 싶다면 다음처럼 **별도 실행 시** 지정한다. 기존 실행을 먼저 정상 종료하고 같은 포트로 중복 시작하지 않는다.
 
 ```powershell
-node tools/student-dashboard.mjs --demo --port 5227
+node student/extension.mjs --dashboard --demo --port 5227
 ```
 
 이때 제공 업무 자료는 `demo`지만 학생 PC 관측은 실제 로컬 운영체제를 읽는다. 두 출처를 합쳐 실제 SDP 연결 성공이라고 쓰지 않는다. 기본 제공 실행(`npm.cmd start`, `npm.cmd run demo`)도 이전처럼 사용할 수 있으며, 그 명령만 실행하면 학생 PC 측정 도구가 자동 시작되지는 않는다.
@@ -86,8 +86,8 @@ node tools/student-dashboard.mjs --demo --port 5227
 
 ```mermaid
 flowchart TD
-  Start[tools/student-dashboard.mjs] --> Server[제공 src/server.mjs · 127.0.0.1]
-  Start --> Collector[학생 tools/student-pc-snapshot.mjs]
+  Start[student/extension.mjs --dashboard] --> Server[제공 src/server.mjs · 127.0.0.1]
+  Start --> Collector[학생 extension.mjs --collect]
   Collector --> OS[Node os + Windows 읽기 전용 명령]
   Collector --> JSON[프로젝트 밖 pc-observation.json]
   Browser[브라우저 보호 현황] --> Server
@@ -106,14 +106,14 @@ PC 관측 파일에는 사용자명·기기명·IP·로그 본문·토큰이 필
 | 일차 | 이번 작업 | 확인한 근거와 범위 | 미확인·남은 한계 |
 |---|---|---|---|
 | 1 다시 실행 | 기존 22단계 앱을 보존하고 핵심 기능 3개 선정 | 제공 기본 서버 재실행 HTTP 200 / `/api/me` 503 `ENGINE_NOT_CONNECTED`를 실제 확인 | 기존 단계의 포털 통과 상태를 새로 조회하지 않음 |
-| 2 PC 상태 | CPU·메모리·디스크 관측·단위·시간·추이 추가 | 실제 로컬 수집 및 실제 브라우저 표시. 예: 2026-11-04 21:10 KST CPU 2.8%, 메모리 14.6/29.7 GiB, 디스크 여유 364.4/882.4 GiB | 값은 당시 표본이며 고정 예시로 UI에 넣지 않음. 작업 관리자와 동시 비교는 미확인 |
-| 3 연결·기록 | 네트워크/방화벽/Windows 로그 읽기 | 당시 활성 어댑터 6개, 3개 프로필 켜짐, System 경고90/오류24, Application 경고3/오류4. 실제 조회·실제 화면 확인 | 경고는 공격 판정 아님. 실제 SDP 미연결. 제한된 로그 범위 |
+| 2 PC 상태 | CPU·메모리·디스크 관측·단위·시간·추이 추가 | 실제 로컬 수집 및 실제 브라우저 표시. 예: 2026-11-04 21:10 KST CPU 2.8%, 메모리 14.6/29.7 GiB, 디스크 여유 364.4/882.4 GiB | 값은 당시 표본이며 고정 예시로 UI에 넣지 않음. 작업 관리자 자동화 창에서 성능 지표를 읽지 못해 동시 비교 미확인 |
+| 3 연결·기록 | 네트워크 구성/방화벽/Windows 로그 읽기 | 당시 활성 어댑터 6개, 3개 프로필 켜짐, System 경고90/오류24, Application 경고3/오류4. 실제 조회·실제 화면 확인. 보완 후 이더넷4/Wi-Fi1/기타1과 Public/Private 프로필의 IPv4/IPv6 상태도 실제 표시 확인 | 경고는 공격 판정 아님. 실제 SDP 미연결. 제한된 로그 범위 |
 | 4 화면 다듬기 | 4개 카드·추이·기록·상태·다시 조회 | 브라우저 Enter 재조회로 표본이 2개가 됨. 잘못된 테스트 JSON 선택 후 모든 현재 카드가 확인 불가로 바뀌고 과거 표본은 별도 유지됨 | 폴더 선택 경로는 모의 검사와 실제 조작 구분 필요. 기존 제공 전체 화면 스타일 유지 |
 | 5 따라 하기 | 이 실행 안내·학생 진입점 추가 | 같은 PC에서 새 프로세스로 시작·Ctrl+C 종료·새 폴더로 재시작 확인. 포트5226/5227 종료와 이전 파일 갱신 중지를 확인 | 다른 사람·별도 PC의 독립 실행은 미확인. 이를 완료로 쓰지 않음 |
 | 6 제출 준비 | 학생 변경만 검토·커밋·정상 푸시 | 최종 해시는 `git rev-parse HEAD`, 원격과 대조. 아래 명령 참조 | 자동 포털 제출·포장 실행은 하지 않음 |
 | 7 시연·정리 | 아래 시연 순서와 이 문서 | 실제 로컬 측정·모의 오류·원문 확인을 구분해 기록 | 학생 본인의 최종 시연·공식 판정·실제 운영 인증은 미확인 |
 
-학생 자동 검사는 **8건 통과**였다: 제공 코드 보존(원문 비교) 1, 입력/DOM 모의 검사5, 실제 로컬 PC 조회1, 수집 도구 쓰기/통신 없음 원문 검사1. 세부 시각·파일 해시는 [학생 검사 기록](FINAL_VALIDATION.md)에 있다. 이것은 공식 판정이 아니다. 같은 최종 커밋의 회귀 검사 결과는 저장소 밖 별도 보고서에 남기며 과거 22단계 결과를 이번 실행으로 바꾸지 않는다.
+보완 후 학생 자동 검사는 **10건 통과**였다: 제공 코드 보존(원문 비교) 1, 입력/DOM 모의 검사6, 실제 로컬 PC 조회1, 수집 도구 쓰기/통신 없음 원문 검사1, 학생 파일 안의 구현 경계 검사1. 세부 시각·파일 해시는 [학생 검사 기록](FINAL_VALIDATION.md)에 있다. 이것은 공식 판정이 아니다. 같은 최종 커밋의 학생·회귀 검사 결과는 저장소 밖 별도 보고서에 남기며 과거 22단계 결과를 이번 실행으로 바꾸지 않는다.
 
 현재 원문에서 학생 검사를 다시 실행하려면 앱 폴더에서 다음을 실행한다. 첫 명령은 모의 검사와 실제 PC 읽기를 수행한다. 두 번째는 기존 13~21단계 로컬 회귀 검사이며 **커밋 후 깨끗한 작업 트리에서만** 실행한다. 출력은 기존 파일을 덮어쓰지 않으므로 매번 새 이름을 사용한다.
 
@@ -173,3 +173,9 @@ git remote get-url origin
 - 사용자가 제공한 1~7일차 AI 요청/결과 확인 화면: 이번 제작 범위의 우선 근거. 예시 화면의 숫자를 실제 값으로 복사하지 않음.
 - `final-assault-team-guides-2026-11-03.zip`: 12단계용 참고서라서 제출 계약은 가져오지 않고 원문·미실행·실측 구분 원칙만 참고.
 - [Sentinel-Defense-Battle](https://github.com/gyeonggumun/Sentinel-Defense-Battle): 2026-11-04 README·실행 안내·학생 코드·제공 서버 경계를 읽음. 출처·예제·실제 연결 분리를 참고. 그 저장소는 서버 PC 진단 추가와 최상위 실행 구조가 있어 그대로 이식하지 않았고, 코드·인증·설정·성과 기록을 복사하지 않음.
+
+## 보완 이력과 제출 검토
+
+2026-11-04 보완: 네트워크 구성을 활성 수만 표시하던 부분에서 매체 종류·연결 프로필·IPv4/IPv6 원래 값과 한국어 뜻으로 확장했다. 실제 수집·실행 로직을 `student/extension.mjs`로 모으고 기존 tools 실행 파일은 호환 진입점으로 남겼다. 제공 서버·공통 UI·인증·패키지 파일은 변경하지 않았다. [제출 원문 대조표](FINAL_SUBMISSION.md)는 캡처의 요구와 현재 파일·기능·검증 범위를 연결한다.
+
+같은 PC의 새 복제 폴더 재현은 실행 증거로 남기되, 다른 사람의 직접 실행으로 바꾸지 않는다. 작업 관리자 비교는 자동화 창에서 지표를 읽지 못해 미확인이다. 포털 제출·판정 결과도 실행 기록과 별개다.

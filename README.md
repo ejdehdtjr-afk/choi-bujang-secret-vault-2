@@ -2,23 +2,24 @@
 
 ## 학생 마무리 제작: 케셰브 개인 보안 관제 대시보드
 
-화면 틀은 **관제 대시보드형**, 실행 방식은 **포장 없이 Windows 로컬 실행**입니다. 기존 13~22단계 코드와 아래의 앞 단계 기록을 보존했습니다. 핵심 기능은 ① CPU·메모리·시스템 디스크 실측 ② 네트워크 어댑터·방화벽 프로필 읽기 ③ 최근 24시간 Windows System/Application 경고·오류 건수입니다. PC 실측과 기존 SDP/XDR·AI 연결은 별도로 표시합니다.
+화면 틀은 **관제 대시보드형**, 실행 방식은 **포장 없이 Windows 로컬 실행**입니다. 기존 13~22단계 코드와 아래의 앞 단계 기록을 보존했습니다. 핵심 기능은 ① CPU·메모리·시스템 디스크 실측 ② 이더넷·Wi-Fi·IPv4/IPv6 연결 프로필·방화벽 프로필 읽기 ③ 최근 24시간 Windows System/Application 경고·오류 건수입니다. PC 실측과 기존 SDP/XDR·AI 연결은 별도로 표시합니다.
 
 저장소 최상위에서 PowerShell을 열고 아래 순서로 실행합니다. 외부 npm 의존성 설치와 프로그램 포장은 하지 않습니다.
 
 ```powershell
 Set-Location .\on-client
 npm.cmd run check
-node tools/student-dashboard.mjs --port 5227
+node student/extension.mjs --dashboard --port 5227
 ```
 
 브라우저에서 <http://127.0.0.1:5227/>를 열고 **측정 폴더 선택**으로 터미널에 출력된 새 관측 폴더를 선택한 뒤 **다시 조회**를 누릅니다. 폴더 선택을 지원하지 않으면 그 폴더의 `pc-observation.json`을 파일 선택으로 읽습니다. 종료는 실행 창에서 `Ctrl+C`입니다. 포트 사용 중이면 다른 프로그램을 끄지 말고 `--port`를 바꿉니다.
 
 - [마무리 실행·구성·1~7일차 확인·시연·한계](on-client/docs/FINAL_DEMO.md)
+- [캡처 요구사항과 제출 원문 대조표](on-client/docs/FINAL_SUBMISSION.md)
 - 화면·입력 검증: `on-client/student/extension.mjs`의 학생 대시보드와 기존 8개 렌더러
-- 추가 측정·실행·검사: `on-client/tools/student-pc-snapshot.mjs`, `student-dashboard.mjs`, `student-dashboard-check.mjs`
+- 측정·실행 구현: `on-client/student/extension.mjs`의 Node 전용 명시적 실행 모드. 기존 `tools/student-pc-snapshot.mjs`, `student-dashboard.mjs`는 이전 명령 호환 진입점이고 `student-dashboard-check.mjs`는 검사 도구
 
-현재 버전은 **final-dashboard-2026.11.04-preview / 검증 중**입니다. 로컬 PC 관측과 화면의 파일 읽기는 확인했으며, 새 PC의 제삼자 재현·실제 SDP/XDR·유료 AI·조치 집행·공식 판정은 미확인입니다. 제공 `public/`, `src/`, `vendor/`, 인증 설정과 패키지 파일을 변경하지 않았습니다. 상세 근거와 재현 명령은 위 학생 문서에 있습니다.
+현재 버전은 **final-dashboard-2026.11.04-rc1 / 학생 제출 후보**입니다. 로컬 PC 관측과 화면의 파일 읽기는 확인했으며, 새 PC의 제삼자 재현·실제 SDP/XDR·유료 AI·조치 집행·공식 판정은 미확인입니다. 제공 `public/`, `src/`, `vendor/`, 인증 설정과 패키지 파일을 변경하지 않았습니다. 상세 근거와 재현 명령은 위 학생 문서에 있습니다.
 
 ## 학생 작성 추가: 케셰브 13~21단계 실행 안내
 

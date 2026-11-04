@@ -5,8 +5,7 @@ import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {resolve, dirname, relative, isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {normalizePcSnapshot, createLocalDashboard} from '../student/extension.mjs';
-import {collectPcSnapshot} from './student-pc-snapshot.mjs';
+import {normalizePcSnapshot, createLocalDashboard, collectPcSnapshot} from '../student/extension.mjs';
 
 const app = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const project = resolve(app, '..');
@@ -16,7 +15,7 @@ const report = {schema: 'keshev.final-dashboard-check.v1', startedAt: new Date()
   node: process.version, checks: [], productionVerified: false,
   unverified: ['다른 사람의 새 PC', '작업 관리자와 동시 비교', '실제 SDP/XDR·AI 연결·조치 집행', '공식 과제 판정']};
 report.files = {};
-for (const name of ['student/extension.mjs', 'tools/student-pc-snapshot.mjs']) {
+for (const name of ['student/extension.mjs', 'tools/student-pc-snapshot.mjs', 'tools/student-dashboard.mjs']) {
   report.files[name] = createHash('sha256').update(readFileSync(resolve(app, name), 'utf8').replace(/\r\n/g, '\n')).digest('hex');
 }
 const check = async (id, kind, fn) => {
@@ -44,6 +43,21 @@ await check('invalid-missing-numeric-and-secret-input', 'mock-input', () => {
   assert.throws(() => normalizePcSnapshot({...sample(), checkedAt: new Date(Date.now() + 300000).toISOString()}));
   assert.throws(() => normalizePcSnapshot({schema: 'example'}));
   return {invalidMetricsNeverBecomeZeroOrNormal: true, unlistedFieldsRemoved: true};
+});
+await check('network-configuration-sanitized-and-unknown-distinct', 'mock-input', () => {
+  const input = sample();
+  input.metrics.network = {status: 'ok', source: 'Get-NetAdapter', checkedAt: input.checkedAt, upAdapters: 3,
+    types: {ethernet: 1, wifi: 1, other: 1}, profilesStatus: 'ok', profilesSource: 'Get-NetConnectionProfile', profilesCapped: false,
+    profiles: [{category: 'Public', ipv4: 'Internet', ipv6: 'NoTraffic', name: 'MOCK_PRIVATE'},
+      {category: 'MOCK_PRIVATE', ipv4: 'unexpected', ipv6: 'Disconnected'}]};
+  const value = normalizePcSnapshot(input).metrics.network;
+  assert.deepEqual(value.types, {ethernet: 1, wifi: 1, other: 1});
+  assert.equal(value.profiles[0].ipv4, 'Internet');
+  assert.equal(value.profiles[1].category, 'unknown'); assert.equal(value.profiles[1].ipv4, 'unknown');
+  assert.ok(!JSON.stringify(value).includes('MOCK_PRIVATE'));
+  input.metrics.network.profilesStatus = 'unverifiable';
+  const partial = normalizePcSnapshot(input).metrics.network;
+  assert.equal(partial.status, 'ok'); assert.equal(partial.profilesStatus, 'unverifiable'); assert.equal(partial.profiles.length, 0);
 });
 
 class Element {
@@ -125,9 +139,19 @@ await check('local-PC-readonly-measurement', 'actual-local-PC', async () => {
   return data;
 });
 await check('no-write-security-command-or-network-in-collector', 'source-inspection', () => {
-  const source = readFileSync(resolve(app, 'tools/student-pc-snapshot.mjs'), 'utf8');
+  const source = collectPcSnapshot.toString();
   assert.ok(!/Set-Net|Remove-|Restart-|Enable-|Disable-|Invoke-WebRequest|fetch\(/i.test(source));
   return {securityConfigurationWrites: false, networkTransmission: false};
+});
+await check('feature-implementation-within-student-extension', 'source-inspection', () => {
+  const source = readFileSync(resolve(app, 'student/extension.mjs'), 'utf8');
+  for (const fn of ['createLocalDashboard', 'normalizePcSnapshot', 'collectPcSnapshot', 'runStudentDashboard', 'runPcSnapshotCli']) assert.ok(source.includes(`function ${fn}(`));
+  for (const name of ['tools/student-pc-snapshot.mjs', 'tools/student-dashboard.mjs']) {
+    const wrapper = readFileSync(resolve(app, name), 'utf8');
+    assert.ok(wrapper.includes("../student/extension.mjs"));
+    assert.ok(!/Get-Net|Get-WinEvent|os\.cpus|spawn\(/.test(wrapper));
+  }
+  return {implementation: 'student/extension.mjs', priorTools: 'compatibility entry points only'};
 });
 report.finishedAt = new Date().toISOString();
 const args = process.argv.slice(2);
